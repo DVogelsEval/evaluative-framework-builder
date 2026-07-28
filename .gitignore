@@ -1,0 +1,16 @@
+node_modules/
+dist/
+playwright-report/
+test-results/
+*.local
+
+# Working notes and source material — one directory rule, so nothing can leak by
+# being named something the ignore list never anticipated.
+_private/
+
+# Per-developer editor/agent overrides (machine-specific)
+.claude/settings.local.json
+
+# Working documents produced by the app while testing
+*.evalq.json
+*.project.json

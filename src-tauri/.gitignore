@@ -1,0 +1,4 @@
+# Rust / Tauri build output — generated on `tauri dev` / `tauri build`.
+/target
+# Tauri-generated capability schemas (recreated from the config on build).
+/gen

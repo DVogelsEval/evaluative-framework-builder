@@ -1,0 +1,41 @@
+name: CI
+
+# The project's quality gates on every push and PR to main: typecheck, unit
+# tests, the walking-skeleton E2E, and the production build. No deploy, no
+# publish — this only validates.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests (Vitest)
+        run: npm test
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E (walking skeleton)
+        run: npm run e2e
+
+      - name: Production build
+        run: npm run build

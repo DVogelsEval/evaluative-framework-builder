@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Evaluative Framework Builder">
+  <rect width="512" height="512" rx="96" fill="#1f2937"/>
+  <!-- A rubric: a continuum of columns with a Sufficient Bar between the negative and positive sides -->
+  <g fill="none" stroke="#e5e7eb" stroke-width="14" stroke-linecap="round">
+    <rect x="96" y="128" width="320" height="256" rx="20"/>
+    <line x1="96" y1="213" x2="416" y2="213"/>
+    <line x1="96" y1="299" x2="416" y2="299"/>
+  </g>
+  <!-- The Sufficient Bar: the thick coloured line between columns -->
+  <line x1="256" y1="128" x2="256" y2="384" stroke="#22c55e" stroke-width="22" stroke-linecap="round"/>
+  <g fill="#e5e7eb">
+    <circle cx="176" cy="170" r="16"/>
+    <circle cx="336" cy="342" r="16"/>
+  </g>
+</svg>

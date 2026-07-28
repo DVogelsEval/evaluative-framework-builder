@@ -1,0 +1,81 @@
+name: Desktop builds (Tauri)
+
+# Secondary artefact: Tauri desktop bundles for Windows/macOS/Linux (R-025,
+# Arch §7). The browser PWA is the primary artefact.
+#
+# MANUAL ONLY. This runs solely on workflow_dispatch, so it never builds or
+# publishes on its own — the owner triggers it deliberately. It builds the
+# matrix and uploads the bundles as workflow artifacts; it does NOT create a
+# GitHub Release (no `tagName` is passed to tauri-action). Cutting a public
+# release is a separate, deliberate step for the owner to add later, along with
+# code signing (Arch §7). Never cross-compiled locally — the matrix is the only
+# supported build path.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest # Apple Silicon
+            args: "--target aarch64-apple-darwin"
+          - platform: macos-latest # Intel
+            args: "--target x86_64-apple-darwin"
+          - platform: ubuntu-22.04
+            args: ""
+          - platform: windows-latest
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            build-essential \
+            libssl-dev \
+            libgtk-3-dev
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ contains(matrix.platform, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # Builds the web bundle (via the config's beforeBuildCommand) then the
+      # native bundle. No release inputs → tauri-action only builds.
+      - uses: tauri-apps/tauri-action@v0
+        with:
+          args: ${{ matrix.args }}
+
+      - name: Upload desktop bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.platform }}-${{ strategy.job-index }}
+          path: |
+            src-tauri/target/*/release/bundle/**/*
+            src-tauri/target/release/bundle/**/*
+          if-no-files-found: warn

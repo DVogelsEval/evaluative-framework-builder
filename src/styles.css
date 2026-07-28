@@ -1,0 +1,2268 @@
+/* Minimal, high-legibility styling — no design system (ARCHITECTURE §2). */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #1a1a1a;
+  background: #f5f4f0;
+  line-height: 1.5;
+}
+
+.app {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-bottom: 2px solid #1a1a1a;
+  margin-bottom: 1.5rem;
+}
+
+.app-header h1 {
+  font-size: 1.25rem;
+}
+
+.header-context {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #d5d2c8;
+  border-radius: 6px;
+  padding: 1.5rem;
+}
+
+label {
+  display: block;
+  margin: 0.75rem 0;
+  font-weight: 600;
+}
+
+input,
+textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  font: inherit;
+  font-weight: 400;
+  border: 1px solid #999;
+  border-radius: 4px;
+}
+
+button {
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: #2c5f8a;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #234c6e;
+}
+
+.error {
+  color: #a4262c;
+  font-weight: 600;
+}
+
+.link-button {
+  color: #2c5f8a;
+  background: none;
+  border: none;
+  padding: 0;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-button:hover {
+  background: none;
+  color: #234c6e;
+}
+
+/* Secondary buttons (add column, mark value-language) */
+
+button.secondary {
+  color: #2c5f8a;
+  background: #eef3f7;
+  border: 1px solid #b9cddd;
+}
+
+button.secondary:hover {
+  background: #dfeaf2;
+}
+
+/* Value-language highlighting (R-034/R-035) */
+
+.question-highlighted {
+  margin: 0.75rem 0 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #fafaf8;
+  border: 1px solid #e2e0d8;
+  border-radius: 4px;
+  white-space: pre-wrap;
+}
+
+.value-mark {
+  background: #fde9b8;
+  border-radius: 3px;
+  padding: 0 0.1em;
+}
+
+.value-chips {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0;
+  padding: 0;
+}
+
+.value-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.3rem 0.15rem 0.6rem;
+  font-weight: 600;
+  background: #fdf6e9;
+  border: 1px solid #c47f17;
+  border-radius: 999px;
+}
+
+.chip-remove {
+  margin: 0;
+  padding: 0 0.35rem;
+  font-size: 1rem;
+  line-height: 1.4;
+  color: #7a4a04;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chip-remove:hover:not(:disabled) {
+  background: #f0dcb8;
+}
+
+.chip-remove:disabled {
+  color: #bbb;
+  cursor: not-allowed;
+}
+
+/* Continuum + Sufficient Bar (rubric layout, R-036/R-037/R-043) */
+
+.continuum-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.continuum-grid {
+  display: grid;
+  align-items: stretch;
+  column-gap: 0.5rem;
+  row-gap: 0;
+  overflow-x: auto;
+}
+
+.col-header {
+  margin: 0;
+  font-weight: 600;
+}
+
+.col-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  min-height: 1.4rem;
+}
+
+.col-side-tag {
+  font-size: 0.7rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #777;
+}
+
+.col-header input {
+  margin-top: 0.2rem;
+}
+
+/* A thick, differently-coloured line running between the columns, through both
+   the header row and the greyed preview row (R-037). */
+.sufficient-bar {
+  width: 12px;
+  align-self: stretch;
+  background: #c47f17;
+  border-radius: 4px;
+}
+
+.preview-cell {
+  margin-top: 0.5rem;
+  min-height: 3.5rem;
+  background: repeating-linear-gradient(
+    -45deg,
+    #efefec,
+    #efefec 6px,
+    #e7e7e2 6px,
+    #e7e7e2 12px
+  );
+  border: 1px dashed #cfcdc5;
+  border-radius: 4px;
+}
+
+/* Structuring choice (J3, R-044) */
+
+.structure-choices {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 1rem 0 0.5rem;
+}
+
+.structure-choice {
+  flex: 1;
+  min-width: 16rem;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  color: #1a1a1a;
+  background: #fdf6e9;
+  border: 2px solid #c47f17;
+  border-radius: 6px;
+}
+
+.structure-choice:hover {
+  background: #f7ead1;
+}
+
+.structure-choice strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.structure-choice span {
+  font-weight: 400;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+/* Node list (J4, R-049–R-055) */
+
+.node-card {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #fafaf8;
+  border: 1px solid #d5d2c8;
+  border-radius: 6px;
+}
+
+.node-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reorder-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.reorder-controls button {
+  margin: 0;
+  padding: 0 0.4rem;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: #2c5f8a;
+  background: #eef3f7;
+  border: 1px solid #b9cddd;
+}
+
+.reorder-controls button:disabled {
+  color: #bbb;
+  border-color: #ddd;
+  background: #f4f4f2;
+  cursor: not-allowed;
+}
+
+.node-card-header .node-name {
+  margin-top: 0;
+  font-weight: 600;
+}
+
+.node-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0 0.75rem;
+}
+
+.node-field {
+  font-size: 0.9rem;
+}
+
+.importance-block {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #d5d2c8;
+}
+
+.reach-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.35rem 0;
+}
+
+.reach-row-label {
+  min-width: 13rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.reach-chip {
+  margin: 0;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #777;
+  background: #f0efeb;
+  border: 1px solid #cfcdc5;
+  border-radius: 999px;
+}
+
+.reach-chip:hover:not(:disabled) {
+  background: #e7e6e1;
+}
+
+.reach-chip.reach-on {
+  color: #1a1a1a;
+  background: #fdf6e9;
+  border-color: #c47f17;
+}
+
+.reach-chip.reach-on:hover:not(:disabled) {
+  background: #f7ead1;
+}
+
+.reach-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Plain-description editor (J5, R-056–R-063) */
+
+.criterion-editor {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+/* The connect step's side column: the click-to-reference methods panel and
+   the progress list are two separate shapes (2026-07-14 notes). */
+.side-column {
+  flex: 0 0 12rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.side-column .traffic-panel {
+  flex: 0 0 auto;
+}
+
+.criterion-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.row-nav button {
+  margin-top: 0;
+}
+
+.row-nav span {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.rubric-row-grid .col-header {
+  align-self: end;
+  padding-bottom: 0.25rem;
+}
+
+.rubric-cell {
+  position: relative;
+  padding-top: 1.4rem;
+}
+
+.rubric-cell textarea {
+  margin-top: 0;
+}
+
+.cell-tick {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  font-weight: 400;
+}
+
+.cell-tick input {
+  width: auto;
+  margin: 0;
+}
+
+/* Traffic-light completeness panel, beside the cells (R-063) */
+
+.traffic-panel {
+  flex: 0 0 12rem;
+  padding: 0.75rem;
+  background: #fafaf8;
+  border: 1px solid #d5d2c8;
+  border-radius: 6px;
+}
+
+.traffic-panel h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+}
+
+.traffic-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin: 0 0 0.25rem;
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  font-weight: 400;
+  color: #1a1a1a;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.traffic-item:hover {
+  background: #efeeea;
+}
+
+.traffic-item.current {
+  border-color: #2c5f8a;
+  background: #eef3f7;
+}
+
+.traffic-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.light {
+  flex: 0 0 auto;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+}
+
+.light-green {
+  background: #3a7d44;
+}
+
+.light-amber {
+  background: #c47f17;
+}
+
+.light-red {
+  background: #a4262c;
+}
+
+/* Full-rubric review (J6, R-065–R-067) */
+
+.review-grid {
+  row-gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.review-row-label {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  color: #1a1a1a;
+  background: #fdf6e9;
+  border: 2px solid #c47f17;
+  border-radius: 6px;
+}
+
+.review-row-label:hover {
+  background: #f7ead1;
+}
+
+.review-cell {
+  padding: 0.5rem;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  background: #fff;
+  border: 1px solid #d5d2c8;
+  border-radius: 4px;
+}
+
+.review-cell.cell-excluded {
+  background: repeating-linear-gradient(
+    -45deg,
+    #efefec,
+    #efefec 6px,
+    #e7e7e2 6px,
+    #e7e7e2 12px
+  );
+}
+
+/* Rubric row cells */
+
+.cells {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.cell {
+  flex: 1;
+}
+
+.cell-excluded {
+  opacity: 0.45;
+}
+
+/* Mid-build Home Window pull-back (R-027/R-028) */
+
+.resume-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.6rem 1rem;
+  background: #fdf6e9;
+  border: 1px solid #c47f17;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.resume-banner button {
+  margin: 0;
+}
+
+/* Home Window */
+
+.question-banner {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem;
+  font-size: 1.1rem;
+  background: #eef3f7;
+  border-left: 4px solid #2c5f8a;
+}
+
+.home-map {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.home-tier {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.node-box {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  color: #1a1a1a;
+  background: #fdf6e9;
+  border: 2px solid #c47f17;
+  border-radius: 6px;
+}
+
+.node-box:hover {
+  background: #f7ead1;
+}
+
+.evidence-box {
+  background: #edf5ec;
+  border-color: #3a7d44;
+}
+
+.evidence-box:hover {
+  background: #dcebda;
+}
+
+.box-kind {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+}
+
+.save-controls {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+.save-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Saved-in-place vs downloaded-fallback feedback (⚠Q48). */
+.save-status {
+  font-size: 0.8rem;
+  color: #3a7d44;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.evidence-summary {
+  padding: 0.75rem 1rem;
+  background: #edf5ec;
+  border: 1px solid #3a7d44;
+  border-radius: 6px;
+}
+
+/* Evidence planning (J7/J8, R-068–R-082) */
+
+.evidence-rubric-preview {
+  margin-bottom: 1rem;
+  opacity: 0.85;
+}
+
+.method-card {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  background: #f4f9f3;
+  border: 1px solid #3a7d44;
+  border-radius: 6px;
+}
+
+.method-form {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  background: #fafaf8;
+  border: 1px dashed #d5d2c8;
+  border-radius: 6px;
+}
+
+.method-form h4 {
+  margin: 0;
+}
+
+.reuse-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #d5d2c8;
+}
+
+.reuse-row label {
+  flex: 1;
+  min-width: 16rem;
+  margin: 0;
+}
+
+.dedupe-selects {
+  display: flex;
+  gap: 0.5rem;
+}
+
+select {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.45rem;
+  font: inherit;
+  font-weight: 400;
+  border: 1px solid #999;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.tier-editor {
+  margin: 0.5rem 0 1rem;
+}
+
+.data-entry {
+  display: grid;
+  grid-template-columns: minmax(9rem, 14rem) 1fr auto;
+  gap: 0.5rem;
+  align-items: start;
+  margin: 0.5rem 0;
+}
+
+.data-entry select,
+.data-entry textarea {
+  margin-top: 0;
+}
+
+/* The auto-provisioned per-method label of a Data Description List row —
+   one row per linked Evidence/Method, no add-entry control (2026-07-14 notes). */
+.data-entry-method {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Older documents' free entries (no linked method): textarea + remove only. */
+.data-entry.data-entry-legacy {
+  grid-template-columns: 1fr auto;
+}
+
+.evidence-level-cell {
+  margin-top: 0;
+  font-size: 0.85rem;
+}
+
+.method-row-label {
+  cursor: default;
+  background: #f4f9f3;
+  border-color: #3a7d44;
+}
+
+.method-row-label:hover {
+  background: #f4f9f3;
+}
+
+.evidence-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.evidence-progress {
+  flex: 0 0 14rem;
+}
+
+/* Shared wizard footer: Back (ungated) left, Continue (gated) right */
+
+.wizard-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.evidence-footer .wizard-nav {
+  flex: 1;
+  margin-top: 0;
+  align-items: flex-start;
+}
+
+/* Mixed-methods step (J9, R-162–R-175) */
+
+.option-tick {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  font-weight: 400;
+}
+
+.option-tick input {
+  width: auto;
+  margin: 0;
+}
+
+.combine-pool {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0.75rem 0;
+}
+
+.combine-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  color: #1a1a1a;
+  background: #f4f9f3;
+  border: 1px solid #3a7d44;
+  border-radius: 6px;
+  cursor: grab;
+}
+
+.combine-card-selected {
+  background: #dcebda;
+  border-width: 2px;
+}
+
+.combine-area {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  background: #fafaf8;
+  border: 2px dashed #b8b4a8;
+  border-radius: 6px;
+}
+
+.combine-line-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.combine-line-item {
+  display: flex;
+  align-items: center;
+}
+
+.combine-line {
+  display: inline-block;
+  width: 3rem;
+  height: 0;
+  border-top: 3px solid #c47f17;
+}
+
+.combine-member {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  background: #edf5ec;
+  border: 1px solid #3a7d44;
+  border-radius: 6px;
+}
+
+/* The middle of the connecting line: type + explanation (R-170/R-171) */
+.combine-middle {
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 0.5rem 0.75rem;
+  background: #fdf6e9;
+  border: 1px solid #c47f17;
+  border-radius: 6px;
+}
+
+.submethods-space {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  background: #f7f6f2;
+  border: 1px solid #b8b4a8;
+  border-radius: 6px;
+}
+
+.submethods-space h4 {
+  margin: 0 0 0.5rem;
+}
+
+.submethod-row {
+  margin: 0.5rem 0 0.75rem 1rem;
+  padding-left: 0.75rem;
+  border-left: 3px solid #c47f17;
+}
+
+.submethod-name {
+  font-weight: 600;
+}
+
+.tick-row {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  background: #f4f9f3;
+  border: 1px solid #3a7d44;
+  border-radius: 6px;
+}
+
+.tick-row select,
+.tick-row input[type="text"],
+.tick-row input:not([type]) {
+  max-width: 24rem;
+  margin-left: 1.6rem;
+}
+
+/* Save-file-style Open view: a Project's Evaluation Questions (R-008) */
+
+/* Start flow (Q55): each page groups its actions into labelled sections. */
+.start-section {
+  margin: 1rem 0;
+}
+
+.start-section > h3 {
+  margin-bottom: 0.5rem;
+}
+
+.start-secondary {
+  padding: 0.75rem 1rem;
+  background: #f7f6f2;
+  border: 1px solid #d5d2c8;
+  border-radius: 6px;
+}
+
+.start-secondary h4 {
+  margin: 0 0 0.5rem;
+  color: #5a574e;
+}
+
+.eq-ref-list {
+  margin-bottom: 1.5rem;
+}
+
+.eq-ref-row {
+  margin: 0.5rem 0;
+}
+
+.eq-ref {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  color: #1a1a1a;
+  background: #f7f6f2;
+  border: 1px solid #b8b4a8;
+  border-radius: 6px;
+}
+
+.eq-ref:hover {
+  background: #efede6;
+}
+
+.eq-ref code {
+  font-size: 0.8rem;
+  color: #5a574e;
+}
+
+.eq-ref-pick {
+  display: block;
+  margin: 0.35rem 0 0 1rem;
+  padding: 0.5rem 0.75rem;
+  background: #fdf6e9;
+  border: 1px dashed #c47f17;
+  border-radius: 6px;
+}
+
+/* Connect evidence to conclusions (J10, R-083–R-097) */
+
+.connect-grid {
+  align-items: stretch;
+}
+
+.connect-row-label {
+  align-self: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+}
+
+.evidence-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  background: #fff;
+  border: 1px solid #d5d2c8;
+  border-radius: 4px;
+}
+
+.evidence-cell > .secondary {
+  margin-top: 0;
+  align-self: flex-start;
+}
+
+/* Each Scenario is its own box; a thin OR divider marks the boxes as
+   independent alternatives (R-087/R-088). */
+.scenario-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  background: #fafaf8;
+  border: 1px solid #b8b4a8;
+  border-radius: 6px;
+}
+
+.scenario-box.active {
+  border-color: #2c5f8a;
+  box-shadow: 0 0 0 2px #eef3f7;
+}
+
+.scenario-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.scenario-or {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.4rem 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8a8574;
+}
+
+.scenario-or::before,
+.scenario-or::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid #d5d2c8;
+}
+
+/* The token-bearing prose surface (Q41): free text a click can drop a bold
+   Evidence/Method (later: criterion) name into. Newlines are stored as \n. */
+.token-prose {
+  min-height: 4.2em;
+  padding: 0.5rem;
+  font-weight: 400;
+  background: #fff;
+  border: 1px solid #999;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+
+.token-prose:empty::before {
+  content: attr(data-placeholder);
+  color: #8a8574;
+}
+
+/* An inline reference token — bold, lightly marked as "a specific thing of
+   note" (Q41); a contenteditable=false island the caret steps over whole. */
+.prose-token {
+  font-weight: 600;
+  padding: 0 0.15em;
+  background: #fdf6e9;
+  border-radius: 3px;
+}
+
+/* J11 — the Overall Judgement synthesis (R-098–R-112) */
+
+.synthesis-choice {
+  display: flex;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+/* Split view: synthesis rubric in development on the left, meso rubric
+   readable in the click panel on the right — the same side as J10's methods
+   panel (R-105/R-106, 2026-07-14 notes). Each side scrolls on its own. */
+.synthesis-split {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+/* The click-to-reference panel: the same colour shape as the methods/traffic
+   panels, greyed out until a criterion-conditions scenario is focused. */
+.click-panel {
+  padding: 0.75rem;
+  background: #fafaf8;
+  border: 1px solid #d5d2c8;
+  border-radius: 6px;
+}
+
+.click-panel-disabled {
+  opacity: 0.55;
+}
+
+/* The ⚠Q47 operator dropdown — inserts plain prose text at the caret. */
+.operator-select {
+  align-self: flex-start;
+  font-size: 0.8rem;
+  color: #2c5f8a;
+  background: #eef3f7;
+  border: 1px solid #b9cddd;
+  border-radius: 4px;
+  padding: 0.15rem 0.3rem;
+}
+
+.synthesis-side {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.synthesis-side h3 {
+  margin-top: 0;
+  font-size: 0.95rem;
+}
+
+/* A meso cell doubles as the R-108 click target: clicking drops the node's
+   name and the clicked conclusion into the focused synthesis scenario. The
+   colours are set explicitly — the global button rule would otherwise leave
+   white text on the cell's white background (2026-07-14 notes). */
+button.meso-click-cell {
+  margin: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  color: #1a1a1a;
+  background: #fff;
+  cursor: pointer;
+}
+
+button.meso-click-cell:hover:not(:disabled) {
+  border-color: #2c5f8a;
+  background: #eef3f7;
+}
+
+button.meso-click-cell:disabled {
+  cursor: default;
+}
+
+.synthesis-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.synthesis-toolbar .secondary {
+  margin-top: 0;
+}
+
+.decision-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.decision-toggle input {
+  display: inline;
+  width: auto;
+  margin: 0;
+}
+
+.syn-cell {
+  padding: 0.35rem;
+}
+
+.syn-cell textarea {
+  margin-top: 0;
+}
+
+.collective-controls {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  border: 1px dashed #b8b4a8;
+  border-radius: 6px;
+}
+
+.collective-controls h4 {
+  margin: 0 0 0.35rem;
+}
+
+.collective-controls .secondary {
+  margin-top: 0;
+}
+
+.collective-custom {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  margin-top: 0.5rem;
+}
+
+.collective-custom input {
+  margin-top: 0;
+}
+
+.synthesis-free-text {
+  display: block;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* A collective group reference reads as a token but is the user's own noun. */
+.prose-token.prose-collective {
+  background: #eef3f7;
+  font-style: italic;
+}
+
+.node-box.judgement-box {
+  border-width: 2px;
+  border-color: #c47f17;
+}
+
+/* Clarity Rating — numeric 1–5, endpoints labelled only (Q8/R-091/R-092) */
+
+.clarity-block {
+  border-top: 1px dashed #d5d2c8;
+  padding-top: 0.4rem;
+}
+
+.clarity-scale {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.clarity-scale legend {
+  padding: 0;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.clarity-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.clarity-point {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 400;
+  background: #fff;
+  border: 1px solid #b8b4a8;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.clarity-point input {
+  width: auto;
+  margin: 0;
+}
+
+.clarity-point.chosen {
+  border-color: #2c5f8a;
+  background: #eef3f7;
+}
+
+.clarity-prompt {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: #fdf6e9;
+  border: 1px dashed #c47f17;
+  border-radius: 6px;
+}
+
+.clarity-prompt p {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+}
+
+.clarity-prompt button {
+  margin: 0 0.4rem 0 0;
+}
+
+.clarity-note {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+}
+
+/* The methods-aside panel (R-085) shares the traffic-panel look. */
+.methods-panel h4 + .hint {
+  margin-top: 0;
+}
+
+.sub-method-line {
+  margin: 0 0 0.25rem;
+  padding-left: 1.25rem;
+  font-size: 0.8rem;
+  color: #5a574e;
+}
+
+/* Slice 7 — the second meso layer editor (SecondLayerView). */
+.second-layer-continuum,
+.second-layer-nodes,
+.second-layer-rollup,
+.second-layer-connect {
+  margin: 1.25rem 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e0d8;
+}
+
+.second-layer-continuum h3,
+.second-layer-nodes h3,
+.second-layer-rollup h3,
+.second-layer-connect h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+/* Inter-layer connect pass (Q53/Q54): superior-node conditional statements on
+   the left, the subordinate rubric click panel on the right. */
+.interlayer-node {
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: #fafaf8;
+  border: 1px solid #e2e0d8;
+  border-radius: 6px;
+}
+
+.interlayer-node h4 {
+  margin: 0 0 0.5rem;
+}
+
+.interlayer-columns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.interlayer-column {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+}
+
+.interlayer-column-head {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+  color: #3a382f;
+}
+
+.interlayer-bar {
+  flex: 0 0 8px;
+  align-self: stretch;
+  background: #c47f17;
+  border-radius: 4px;
+}
+
+.meso-grid-label {
+  margin: 0.75rem 0 0.35rem;
+  font-size: 0.85rem;
+  color: #5a574e;
+}
+
+.column-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.rollup-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.35rem 0;
+}
+
+.rollup-child {
+  min-width: 13rem;
+  font-weight: 600;
+}
+
+/* Slice 8 — Outputs & exports (OutputsView, J12) */
+
+.home-outputs-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+.home-outputs-cta .hint {
+  margin: 0;
+}
+
+.outputs-toolbar h2 {
+  margin-top: 0;
+}
+
+.outputs-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.outputs-actions button {
+  margin-top: 0;
+}
+
+.output-sheet {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e0d8;
+}
+
+.output-title {
+  font-size: 1.4rem;
+  margin: 0 0 0.5rem;
+}
+
+.output-page {
+  margin-top: 1.5rem;
+}
+
+.output-node {
+  margin-top: 1.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #d5d2c8;
+}
+
+.output-kind {
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+}
+
+.output-table {
+  width: 100%;
+  margin: 0.5rem 0 1rem;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.output-table th,
+.output-table td {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+  border: 1px solid #d5d2c8;
+}
+
+.output-table thead th {
+  background: #fdf6e9;
+  border-color: #c47f17;
+}
+
+.output-table th[scope="row"] {
+  background: #fafaf8;
+  font-weight: 600;
+}
+
+.matrix-mark {
+  text-align: center;
+  font-weight: 700;
+  color: #2c5f8a;
+}
+
+.output-scenario {
+  margin: 0.15rem 0;
+}
+
+.output-scenario + .output-scenario {
+  padding-top: 0.15rem;
+  border-top: 1px dashed #e2e0d8;
+}
+
+.output-tier h4 {
+  margin: 0.5rem 0 0.25rem;
+}
+
+.output-freetext {
+  white-space: pre-wrap;
+}
+
+/* Output B rubric layout toggle (Q51 note 3) — a display preference. */
+.output-layout-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.output-layout-toggle .hint {
+  margin: 0;
+}
+
+.output-layout-toggle button {
+  margin-top: 0;
+  font-size: 0.85rem;
+}
+
+/* Criterion-first justifications: the criterion cell "opens" (rowSpan) over all
+   its Evidence/Methods, carrying its warrant boxes (Q51 note 1). */
+.justifications-table th.justif-criterion {
+  min-width: 12rem;
+  vertical-align: top;
+}
+
+.justif-criterion-name {
+  display: block;
+  font-weight: 700;
+}
+
+.justif-warrants {
+  margin: 0.4rem 0 0;
+}
+
+.justif-warrants dt {
+  margin-top: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #666;
+}
+
+.justif-warrants dd {
+  margin: 0.05rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+
+.justif-strategy {
+  color: #7a4a04;
+  font-style: italic;
+}
+
+/* The Sufficient Bar in Output B printouts (Q51 note 2) — a gold divider,
+   consistent with the editors' .sufficient-bar. A full-width row in the vertical
+   layout; a thin column in the horizontal layout. */
+.sufficient-bar-row td.sufficient-bar-cell {
+  padding: 0.25rem 0.6rem;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  background: #c47f17;
+  border-color: #c47f17;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.output-table td.sufficient-bar-col,
+.output-table th.sufficient-bar-col-head {
+  width: 12px;
+  min-width: 12px;
+  padding: 0;
+  background: #c47f17;
+  border-color: #c47f17;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.rubric-columns th[scope="row"] {
+  white-space: nowrap;
+}
+
+/* Slice 9 — Home Window map-with-lines (HomeMap SVG, J13) */
+
+.home-map-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.home-map-box {
+  cursor: pointer;
+}
+
+.home-map-box rect {
+  transition: filter 0.1s ease;
+}
+
+.home-map-box:hover rect {
+  filter: brightness(0.96);
+}
+
+.home-map-box:focus-visible {
+  outline: 2px solid #2c5f8a;
+  outline-offset: 2px;
+}
+
+.home-map-edge {
+  pointer-events: none;
+}
+
+.home-map-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.home-map-actions button {
+  margin-top: 0;
+}
+
+/* Slice 10 — persistent per-EQ Notes pop-out (NotesPanel, R-030/Q19) */
+
+.notes-panel {
+  position: fixed;
+  top: 4.5rem;
+  right: 1rem;
+  z-index: 50;
+  width: min(360px, calc(100vw - 2rem));
+  max-height: 72vh;
+  overflow: auto;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #c47f17;
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+}
+
+.notes-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notes-panel-header h3 {
+  margin: 0;
+}
+
+.notes-panel textarea {
+  margin-top: 0.5rem;
+  resize: vertical;
+}
+
+/* Slice 10 — read-only Deleted items view (DeletedView, R-149/Q18) */
+
+.deleted-list {
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+}
+
+.deleted-item {
+  display: grid;
+  grid-template-columns: 12rem 1fr auto auto;
+  gap: 0.25rem 1rem;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: #fafaf8;
+  border: 1px solid #d5d2c8;
+  border-radius: 6px;
+}
+
+.deleted-label {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.deleted-item .hint {
+  margin: 0;
+}
+
+.deleted-item button {
+  margin: 0;
+  align-self: center;
+}
+
+/* Print stylesheet (Q21): the page IS the clean viewable output — hide the app
+   chrome and the export controls, and let the output sheet fill the page. */
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .app {
+    max-width: none;
+    padding: 0;
+  }
+
+  .app-header,
+  .no-print,
+  .resume-banner {
+    display: none !important;
+  }
+
+  .panel {
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .output-sheet {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .output-page,
+  .output-node {
+    break-inside: avoid;
+  }
+
+  .output-table thead {
+    display: table-header-group;
+  }
+
+  .ai-prompt {
+    border: none;
+    padding: 0;
+    background: #fff;
+  }
+}
+
+/* ---- AI hand-off (Slice 11, R-139–R-141) ---------------------------------- */
+
+.ai-handoff-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.ai-handoff-toolbar h2 {
+  margin: 0;
+}
+
+.ai-handoff-actions,
+.ai-handoff-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ai-handoff-buttons {
+  margin-top: 1rem;
+}
+
+.ai-handoff-help {
+  border: 1px solid #e2e0d8;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  margin: 0.75rem 0;
+  background: #faf9f5;
+}
+
+.ai-handoff-help ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.ai-handoff-help li {
+  margin: 0.35rem 0;
+}
+
+.ai-handoff-pickers {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.ai-handoff-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 16rem;
+  flex: 1 1 16rem;
+}
+
+.ai-handoff-field span {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.ai-prompt {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  border: 1px solid #e2e0d8;
+  border-radius: 6px;
+  padding: 1rem;
+  background: #faf9f5;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.ai-template-editor {
+  margin-top: 1rem;
+}
+
+.ai-template-source {
+  width: 100%;
+  font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+/* ---- Slice 13: rubric-cell condition builder -------------------------------- */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.cond-panel {
+  margin-top: 1.25rem;
+  border: 1px solid #cfc9bd;
+  border-radius: 6px;
+  background: #fbfaf7;
+  padding: 0.75rem 1rem 1rem;
+}
+
+.cond-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.cond-panel-head h4 {
+  margin: 0.25rem 0;
+}
+
+.cond-mode-toggle {
+  display: flex;
+  gap: 0.5rem;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.cond-mode-toggle label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid #cfc9bd;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.cond-mode-toggle label.chosen {
+  background: #e7efff;
+  border-color: #7ba7e0;
+}
+
+.cond-cells {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.cond-cell {
+  border: 1px solid #e2ddd2;
+  border-radius: 5px;
+  background: #fff;
+  padding: 0.6rem 0.7rem;
+}
+
+.cond-cell-head {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin-bottom: 0.4rem;
+}
+
+.cond-cell-col {
+  font-weight: 600;
+}
+
+.cond-chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.4rem;
+  padding: 0.4rem 0;
+  min-height: 1.8rem;
+}
+
+.cond-chain-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cond-term {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.cond-op {
+  font-weight: 700;
+  text-transform: lowercase;
+  color: #333;
+}
+
+.cond-token-group {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 0.1rem 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.cond-token-group:hover {
+  border-color: #cfc9bd;
+  background: #f3f0ea;
+}
+
+.cond-tok {
+  border-radius: 3px;
+  padding: 0.05rem 0.25rem;
+}
+
+.cond-element {
+  color: #1552b0;
+  background: #e7efff;
+}
+
+.cond-comparator {
+  color: #555;
+}
+
+.cond-value {
+  color: #0a6b5f;
+  background: #dcf3ee;
+}
+
+.cond-add-row {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+}
+
+.cond-notes {
+  margin-top: 0.4rem;
+}
+
+.warning {
+  color: #8a5a00;
+  margin: 0.2rem 0;
+  font-size: 0.85rem;
+}
+
+.cond-plain {
+  font-style: italic;
+}
+
+.cond-typed,
+.cond-qualifiers {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+}
+
+.cond-typed summary,
+.cond-qualifiers summary {
+  cursor: pointer;
+  color: #444;
+}
+
+.cond-typed textarea {
+  width: 100%;
+  margin: 0.4rem 0;
+}
+
+.cond-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.4rem 0;
+  font-size: 0.85rem;
+}
+
+.cond-field input,
+.cond-field select,
+.cond-field textarea {
+  font: inherit;
+}
+
+.cond-qualifier-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.cond-prose textarea {
+  width: 100%;
+}
+
+/* Term editor modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  max-width: 420px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.cond-modal h3 {
+  margin-top: 0;
+}
+
+.cond-modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.danger {
+  color: #a11;
+  border-color: #d99;
+}
+
+/* ---- Slice 14: Simulate Judgement window --------------------------------- */
+
+.sim-banner {
+  background: #fff4d6;
+  border: 1px solid #e0b84a;
+  color: #6b4e00;
+  font-weight: 600;
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+  margin-bottom: 0.8rem;
+}
+
+.sim-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sim-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sim-body {
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 780px) {
+  .sim-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sim-inputs h3,
+.sim-flow h3 {
+  margin: 0.2rem 0 0.4rem;
+}
+
+.sim-node-inputs {
+  border: 1px solid #d8d3c7;
+  border-radius: 6px;
+  padding: 0.5rem 0.8rem 0.7rem;
+  margin: 0 0 0.7rem;
+}
+
+.sim-node-inputs legend {
+  font-weight: 600;
+  padding: 0 0.3rem;
+}
+
+.sim-input-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0.35rem 0;
+}
+
+.sim-input-label {
+  color: #333;
+}
+
+.sim-input-row select,
+.sim-input-row input {
+  min-width: 7rem;
+}
+
+/* The fold-up display: tiers top→bottom like the Home Map. */
+.sim-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sim-tier h3 {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #777;
+}
+
+.sim-tier-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.sim-card {
+  border: 2px solid #b8b4a8;
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  min-width: 12rem;
+  background: #fbfaf7;
+}
+
+.sim-card-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+}
+
+.sim-card-conclusion {
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+.sim-card-resolved {
+  border-color: #3a7d44;
+  background: #edf5ec;
+}
+
+.sim-card-ambiguous {
+  border-color: #b26a00;
+  background: #fdf1df;
+}
+
+.sim-card-unknown {
+  border-color: #8a8a8a;
+  background: #f2f2f0;
+}
+
+.sim-card-no_match {
+  border-color: #a11;
+  background: #fbecec;
+}
+
+.sim-card-no_conditions {
+  border-style: dashed;
+  color: #555;
+}
+
+.sim-tier-judgement .sim-card {
+  border-color: #c47f17;
+  background: #fdf6e9;
+}
+
+.sim-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: #c47f17;
+  color: #fff;
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+  vertical-align: middle;
+}
+
+.sim-card-why {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.sim-blocked {
+  border: 1px solid #d99;
+  background: #fbecec;
+  border-radius: 6px;
+  padding: 0.6rem 0.9rem;
+}
+
+.sim-gate-reasons {
+  margin: 0.3rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  color: #7a3b00;
+}
+
+/* Read-only fired-condition tokens (no hover affordance). */
+.cond-token-static {
+  cursor: default;
+}
+
+.cond-chain-readonly .cond-token-static:hover {
+  border-color: transparent;
+  background: transparent;
+}
+
+.syn-cond-panel {
+  margin-top: 1rem;
+}
