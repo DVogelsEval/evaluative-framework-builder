@@ -2044,6 +2044,117 @@ button.meso-click-cell:disabled {
   width: 100%;
 }
 
+.cond-warrant {
+  border-top: 1px dashed #ccc;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+/* V2 record layer — the dismissible "record why this changed" prompt (Q64) */
+.record-prompt {
+  border: 1px solid #d8a72a;
+  background: #fdf6e3;
+  border-radius: 4px;
+  padding: 0.7rem 0.9rem;
+  margin: 0.6rem 0;
+}
+
+.record-prompt-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+/* V2 distinguishing case (extension spec §3.2) — a collapsed prompt beneath
+   the Plain Description, same visual weight as the condition builder. */
+.distinguishing-case {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.distinguishing-case summary {
+  cursor: pointer;
+  color: #444;
+}
+
+.distinguishing-case textarea {
+  width: 100%;
+  margin-top: 0.3rem;
+}
+
+/* V2 element history (inline strip, §1.5) */
+.element-history {
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+}
+
+.element-history summary {
+  cursor: pointer;
+  color: #444;
+}
+
+.element-history ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.1rem;
+}
+
+/* V2 criterion timeline (CriterionTimelineView) */
+.criterion-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* V2 framework timeline (RecordTimelineView) */
+.records-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.record-item {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0.6rem 0.8rem;
+  position: relative;
+}
+
+/* V2 critique import (Phase 2.4) — one bordered block per imported reviewer */
+.panel-section {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 1rem 0;
+  position: relative;
+}
+
+.panel-section .chip-remove {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+}
+
+.record-item-head {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+}
+
+.record-item-export-toggle {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.4rem !important;
+}
+
+.record-item .chip-remove {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.6rem;
+}
+
 /* Term editor modal */
 .modal-overlay {
   position: fixed;
@@ -2116,6 +2227,22 @@ button.meso-click-cell:disabled {
   .sim-body {
     grid-template-columns: 1fr;
   }
+}
+
+/* V2 Cases (Q62/Q67) — spans both sim-body columns */
+.sim-cases {
+  grid-column: 1 / -1;
+  border-top: 1px solid #ddd;
+  padding-top: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.sim-case-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .sim-inputs h3,

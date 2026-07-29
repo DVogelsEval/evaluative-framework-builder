@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { negativeColumns, positiveColumns } from "../domain/continuum";
 import { checkColumnHeaders, checkContinuum } from "../domain/invariants";
+import { refForColumn } from "../domain/recordRef";
 import type { Column } from "../domain/schema";
 import { useStore } from "../store/store";
+import { ElementHistory } from "./ElementHistory";
+import { RecordPromptBanner } from "./RecordPromptBanner";
+import { useRecordPrompt } from "./useRecordPrompt";
 import { WizardNav } from "./WizardNav";
 
 /**
@@ -19,6 +23,11 @@ export function ContinuumView() {
   const removeColumn = useStore((s) => s.removeColumn);
   const setView = useStore((s) => s.setView);
   const [gateMessages, setGateMessages] = useState<string[]>([]);
+  // V2 record layer (Q64): a Column Header is load-bearing. Prompt on blur,
+  // only when the value actually changed — never per keystroke (extension
+  // spec §4.2, "keystroke noise guarantees the record is unread").
+  const recordPrompt = useRecordPrompt();
+  const valueOnFocus = useRef(new Map<string, string>());
 
   const layer = doc?.mesoLayers.find((l) => l.tierOrder === 0);
   if (!doc || !layer) return null;
@@ -61,7 +70,26 @@ export function ContinuumView() {
           data-testid={`column-label-${column.ordinal}`}
           placeholder="Column Header"
           value={column.label}
+          onFocus={(e) => valueOnFocus.current.set(column.id, e.target.value)}
           onChange={(e) => setColumnLabel(column.id, e.target.value)}
+          onBlur={(e) => {
+            const before = valueOnFocus.current.get(column.id);
+            // Naming a blank header for the first time is initial authoring,
+            // not a reasoned change — only prompt when an already-named
+            // header is revised to something different (Q64 scope).
+            if (before === undefined || before.trim() === "" || before === e.target.value) return;
+            recordPrompt.offer({
+              elementRef: refForColumn(layer.id, column.id),
+              changeSummary: `Column Header changed from "${before}" to "${e.target.value || "(blank)"}".`,
+              previousValue: before,
+              newValue: e.target.value,
+            });
+          }}
+        />
+        <ElementHistory
+          doc={doc}
+          elementRef={refForColumn(layer.id, column.id)}
+          testId={`column-history-${column.ordinal}`}
         />
       </div>
     );
@@ -127,6 +155,13 @@ export function ContinuumView() {
         ))}
       </div>
       <p className="hint">Preview: your Plain Descriptions will fill these cells later.</p>
+
+      <RecordPromptBanner
+        pending={recordPrompt.pending}
+        onSave={recordPrompt.save}
+        onDismiss={recordPrompt.dismiss}
+        testId="continuum-record-prompt"
+      />
 
       <WizardNav
         continueTestId="continuum-continue"

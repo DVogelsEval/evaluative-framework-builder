@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { checkDocument } from "../domain/invariants";
 import { useStore } from "./store";
 import {
   firstIncompleteView,
@@ -100,6 +101,13 @@ describe("firstIncompleteView — step order", () => {
     expect(doc().overallJudgement).toBeUndefined();
     expect(firstIncompleteView(doc())).toBe("home");
     expect(frameworkComplete(doc())).toBe(true);
+
+    // Q69 audit (docs/ROADMAP-V2.md §3.2, docs/OPEN-QUESTIONS.md Q69): this
+    // whole fixture never had a second criterion, never grew a second meso
+    // layer, and just declined the Overall Judgement — a one-criterion,
+    // no-judgement framework must be FULLY legal, not just wizard-complete.
+    // No [gate] invariant may still be tripping here.
+    expect(checkDocument(doc()).filter((i) => i.mode === "gate")).toEqual([]);
   });
 
   it("the R-112 free text fulfils an accepted synthesis by itself (⚠Q45)", () => {

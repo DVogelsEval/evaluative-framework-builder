@@ -1,7 +1,10 @@
 import { orderedColumns } from "./continuum";
 import { findColumnInAnyLayer, orderedLayersForOutput, subordinateLayer } from "./layers";
 import { mixedStrategyLabel } from "./mixedMethods";
+import { labelForRef } from "./recordRef";
 import { scenarioPlainText } from "./scenario";
+import { SIMULATED_LABEL } from "./simCase";
+import { warrantSummary } from "./warrant";
 import type {
   Column,
   Continuum,
@@ -9,6 +12,7 @@ import type {
   EvidenceMethod,
   MesoLayer,
   MesoNode,
+  RecordEntry,
   RubricCellCondition,
 } from "./schema";
 
@@ -264,8 +268,9 @@ export function conditionSummary(condition: RubricCellCondition | undefined): st
     parts.push(
       `exception ${asText(condition.exception.condition)} → ${condition.exception.action}`,
     );
-  if ((condition.warrant ?? "").trim() !== "")
-    parts.push(`rationale: ${condition.warrant!.trim()}`);
+  const warrant = condition.warrant;
+  if (warrant && (warrant.text.trim() !== "" || warrant.source.trim() !== ""))
+    parts.push(`rationale: ${warrantSummary(warrant)}`);
   return parts.join("; ");
 }
 
@@ -317,6 +322,26 @@ export function clarityNotes(doc: EvaluationQuestion): ClarityNote[] {
   return notes;
 }
 
+// ---- V2 record layer in exports (docs/ROADMAP-V2.md §1.4, Q64) --------------
+
+/**
+ * The non-suppressible line every record-bearing export must carry, e.g.
+ * `Decision record: 14 entries, 3 withheld.` — present whenever the document
+ * has any records at all, even if every one of them is withheld. There is
+ * deliberately no parameter here to hide or omit it: a gap the reader can see
+ * is a different object from a gap they cannot (extension spec decision 3).
+ */
+export function recordWithheldLine(records: RecordEntry[]): string {
+  const withheld = records.filter((r) => !r.includeInExport).length;
+  return `Decision record: ${records.length} ${records.length === 1 ? "entry" : "entries"}, ${withheld} withheld.`;
+}
+
+/** The entries an export actually lists — everything else is covered only by
+ *  the withheld count above, never rendered individually. */
+export function includedRecordEntries(records: RecordEntry[]): RecordEntry[] {
+  return records.filter((r) => r.includeInExport);
+}
+
 // ---- Serialisers (client-side exports — R-118/R-124, Q21) --------------------
 
 /** Wrap a CSV field, quoting only when needed (comma, quote, or newline). */
@@ -348,7 +373,10 @@ function mdCell(value: string): string {
  * with each node's evidence tier and any clarity notes (R-159). GitHub-flavoured
  * pipe tables (⚠Q51).
  */
-export function toMarkdown(doc: EvaluationQuestion): string {
+export function toMarkdown(
+  doc: EvaluationQuestion,
+  opts?: { includeDecisionRecord?: boolean },
+): string {
   const out: string[] = [];
   const p = (line = "") => out.push(line);
 
@@ -490,6 +518,10 @@ export function toMarkdown(doc: EvaluationQuestion): string {
       // line beneath the conclusion; derived from the cell's stored condition.
       const cond = conditionSummary(cell?.condition);
       if (cond !== "") p(`  - _Condition:_ ${mdCell(cond)}`);
+      // V2 extension spec §3.2: the distinguishing case sits alongside the
+      // descriptor it qualifies, same footnote style as the condition line.
+      const distinguishing = (cell?.distinguishingCase ?? "").trim();
+      if (distinguishing !== "") p(`  - _Distinguishing case:_ ${mdCell(distinguishing)}`);
     };
     for (const col of below) emitConclusion(col);
     // The Sufficient Bar between the below- and above-bar conclusions (Q51 note 2).
@@ -549,6 +581,46 @@ export function toMarkdown(doc: EvaluationQuestion): string {
     p();
     for (const n of notes) {
       p(`- **${mdCell(n.nodeName)} — ${mdCell(n.columnLabel)}:** ${mdCell(n.note)}`);
+    }
+    p();
+  }
+
+  // Decision record (V2, Q64) — appears whenever any record exists; the
+  // withheld count is never suppressible (docs/ROADMAP-V2.md §1.4).
+  // Suppressed only by the State-as-at export (§3.3), which shows its own
+  // windowed delta section instead of this whole-history one, so the two
+  // never appear side by side saying different things about the same word
+  // "changes".
+  if ((opts?.includeDecisionRecord ?? true) && doc.records.length > 0) {
+    p(`## Decision record`);
+    p();
+    p(`**${recordWithheldLine(doc.records)}**`);
+    p();
+    const included = [...includedRecordEntries(doc.records)].sort((a, b) =>
+      a.timestamp < b.timestamp ? 1 : a.timestamp > b.timestamp ? -1 : 0,
+    );
+    for (const entry of included) {
+      const when = entry.timestamp.slice(0, 10);
+      const who = entry.author.trim() !== "" ? entry.author.trim() : "(unattributed)";
+      p(
+        `- **${when}, ${mdCell(who)} (${entry.prompt}):** ${mdCell(labelForRef(doc, entry.elementRef))} — ${mdCell(entry.changeSummary)}. _Reason:_ ${mdCell(entry.reason)}`,
+      );
+    }
+    p();
+  }
+
+  // SIMULATED Cases (V2, Q62/Q67) — the label is unsuppressible everywhere a
+  // SimCase is rendered (extension spec §2/§5.1). authorNotes/expectedToFail
+  // are the author's own private markers and are never shown here.
+  if (doc.simCases.length > 0) {
+    p(`## Cases (${SIMULATED_LABEL})`);
+    p();
+    p(
+      `_Every case below is a hypothetical the author wrote for testing the framework's logic — never a recorded evaluation result._`,
+    );
+    p();
+    for (const c of [...doc.simCases].sort((a, b) => a.label.localeCompare(b.label))) {
+      p(`- **${mdCell(c.label)} (${SIMULATED_LABEL}):** ${mdCell(c.prose)}`);
     }
     p();
   }

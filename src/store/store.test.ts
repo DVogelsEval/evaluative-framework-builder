@@ -58,6 +58,9 @@ function buildSkeleton() {
       { kind: "text", text: "Observation notes place the teaching here." },
     ]);
   }
+  // V2 (Invariant 22): a genuinely complete framework names a distinguishing
+  // case somewhere on the node, not on every cell.
+  s().setCellDistinguishingCase(node().id, node().cells[0]!.id, "Stops short of the next column.");
 }
 
 describe("domain store — thin wrapper over the document (R-013)", () => {
@@ -1080,6 +1083,233 @@ describe("Overall Judgement synthesis (J11, R-098–R-112, ⚠Q44/⚠Q45/⚠Q46)
     // The store stamps its own lastModified, overriding whatever was passed.
     expect(saved.lastModified).not.toBe("1970-01-01T00:00:00.000Z");
     // The whole document still satisfies the canonical schema.
+    expect(() =>
+      evaluationQuestionSchema.parse(JSON.parse(JSON.stringify(s().doc))),
+    ).not.toThrow();
+  });
+});
+
+describe("V2 record layer — reasoned-change history (Q64, docs/ROADMAP-V2.md §1)", () => {
+  const openEQ = () => {
+    const s = () => useStore.getState();
+    s().createEQ("EQ");
+    return s;
+  };
+
+  it("stamps id/timestamp and defaults includeInExport to true", () => {
+    const s = openEQ();
+    s().addRecordEntry({
+      elementRef: "eq",
+      author: "Reviewer",
+      changeSummary: "Moved the bar.",
+      reason: "Stakeholder objection.",
+      prompt: "objection",
+    });
+    const entry = s().doc!.records[0]!;
+    expect(entry.id).toBeTruthy();
+    expect(entry.timestamp).toBeTruthy();
+    expect(entry.includeInExport).toBe(true);
+    expect(entry.reason).toBe("Stakeholder objection.");
+  });
+
+  it("respects an explicit includeInExport: false", () => {
+    const s = openEQ();
+    s().addRecordEntry({
+      elementRef: "eq",
+      author: "",
+      changeSummary: "Minor tweak.",
+      reason: "No real reason.",
+      prompt: "other",
+      includeInExport: false,
+    });
+    expect(s().doc!.records[0]!.includeInExport).toBe(false);
+  });
+
+  it("updateRecordEntry patches an existing entry", () => {
+    const s = openEQ();
+    s().addRecordEntry({
+      elementRef: "eq",
+      author: "A",
+      changeSummary: "X",
+      reason: "Y",
+      prompt: "other",
+    });
+    const id = s().doc!.records[0]!.id;
+    s().updateRecordEntry(id, { reason: "Updated reason." });
+    expect(s().doc!.records[0]!.reason).toBe("Updated reason.");
+  });
+
+  it("setRecordIncludeInExport toggles the per-entry export flag", () => {
+    const s = openEQ();
+    s().addRecordEntry({
+      elementRef: "eq",
+      author: "A",
+      changeSummary: "X",
+      reason: "Y",
+      prompt: "other",
+    });
+    const id = s().doc!.records[0]!.id;
+    s().setRecordIncludeInExport(id, false);
+    expect(s().doc!.records[0]!.includeInExport).toBe(false);
+  });
+
+  it("removeRecordEntry moves the entry to the RecycleBin, never a hard delete", () => {
+    const s = openEQ();
+    s().addRecordEntry({
+      elementRef: "eq",
+      author: "A",
+      changeSummary: "X",
+      reason: "Y",
+      prompt: "other",
+    });
+    const id = s().doc!.records[0]!.id;
+    s().removeRecordEntry(id);
+    expect(s().doc!.records).toEqual([]);
+    expect(s().doc!.recycleBin.deletedNodes).toHaveLength(1);
+    expect(s().doc!.recycleBin.deletedNodes[0]!.originPath).toBe("records");
+
+    const restored = s().restoreDeleted(0);
+    expect(restored.restored).toBe(true);
+    expect(s().doc!.records[0]!.id).toBe(id);
+  });
+
+  it("the whole document still satisfies the canonical schema after record actions", () => {
+    const s = openEQ();
+    s().addRecordEntry({
+      elementRef: "eq",
+      author: "A",
+      changeSummary: "X",
+      reason: "Y",
+      prompt: "other",
+    });
+    expect(() =>
+      evaluationQuestionSchema.parse(JSON.parse(JSON.stringify(s().doc))),
+    ).not.toThrow();
+  });
+});
+
+describe("V2 review loop — SimCase persistence (Q62/Q67, docs/ROADMAP-V2.md §2.1)", () => {
+  const openEQ = () => {
+    const s = () => useStore.getState();
+    s().createEQ("EQ");
+    return s;
+  };
+
+  it("addSimCase stamps an id and persists label/prose/values verbatim", () => {
+    const s = openEQ();
+    s().addSimCase({ label: "Borderline", prose: "A vignette.", values: { el1: "Strong" } });
+    const saved = s().doc!.simCases[0]!;
+    expect(saved.id).toBeTruthy();
+    expect(saved.label).toBe("Borderline");
+    expect(saved.prose).toBe("A vignette.");
+    expect(saved.values).toEqual({ el1: "Strong" });
+    expect(saved.expectedToFail).toBeUndefined();
+  });
+
+  it("addSimCase carries authorNotes/expectedToFail when provided", () => {
+    const s = openEQ();
+    s().addSimCase({
+      label: "A",
+      prose: "",
+      values: {},
+      authorNotes: "Private note.",
+      expectedToFail: true,
+    });
+    expect(s().doc!.simCases[0]!).toMatchObject({
+      authorNotes: "Private note.",
+      expectedToFail: true,
+    });
+  });
+
+  it("updateSimCase patches an existing case", () => {
+    const s = openEQ();
+    s().addSimCase({ label: "A", prose: "", values: {} });
+    const id = s().doc!.simCases[0]!.id;
+    s().updateSimCase(id, { label: "Renamed" });
+    expect(s().doc!.simCases[0]!.label).toBe("Renamed");
+  });
+
+  it("removeSimCase moves the case to the RecycleBin, never a hard delete, and it can be restored", () => {
+    const s = openEQ();
+    s().addSimCase({ label: "A", prose: "", values: {} });
+    const id = s().doc!.simCases[0]!.id;
+    s().removeSimCase(id);
+    expect(s().doc!.simCases).toEqual([]);
+    expect(s().doc!.recycleBin.deletedNodes).toHaveLength(1);
+    expect(s().doc!.recycleBin.deletedNodes[0]!.originPath).toBe("simCases");
+
+    const restored = s().restoreDeleted(0);
+    expect(restored.restored).toBe(true);
+    expect(s().doc!.simCases[0]!.id).toBe(id);
+  });
+
+  it("the whole document still satisfies the canonical schema after SimCase actions", () => {
+    const s = openEQ();
+    s().addSimCase({ label: "A", prose: "", values: { x: 3, y: true, z: null } });
+    expect(() =>
+      evaluationQuestionSchema.parse(JSON.parse(JSON.stringify(s().doc))),
+    ).not.toThrow();
+  });
+});
+
+describe("V2 review loop — critique import (Q65, docs/ROADMAP-V2.md §2.4)", () => {
+  const openEQ = () => {
+    const s = () => useStore.getState();
+    s().createEQ("EQ");
+    return s;
+  };
+
+  const validCritique = () => ({
+    id: crypto.randomUUID(),
+    reviewerLabel: "Reviewer A",
+    importedAt: new Date().toISOString(),
+    placements: [
+      { simCaseId: crypto.randomUUID(), placedAtColumnId: crypto.randomUUID(), objection: "Too harsh." },
+    ],
+    addedCases: [{ label: "Their own case", prose: "A vignette." }],
+  });
+
+  it("importCritique validates through critiqueSchema and appends on success", () => {
+    const s = openEQ();
+    const outcome = s().importCritique(validCritique());
+    expect(outcome.success).toBe(true);
+    expect(s().doc!.critiques).toHaveLength(1);
+    expect(s().doc!.critiques[0]!.reviewerLabel).toBe("Reviewer A");
+  });
+
+  it("rejects a malformed critique without mutating the document", () => {
+    const s = openEQ();
+    const outcome = s().importCritique({ not: "a critique" });
+    expect(outcome.success).toBe(false);
+    expect(outcome.error).toBeTruthy();
+    expect(s().doc!.critiques).toEqual([]);
+  });
+
+  it("supports importing multiple critiques against the same case set (never merged)", () => {
+    const s = openEQ();
+    s().importCritique(validCritique());
+    s().importCritique({ ...validCritique(), reviewerLabel: "Reviewer B" });
+    expect(s().doc!.critiques).toHaveLength(2);
+    expect(s().doc!.critiques.map((c) => c.reviewerLabel)).toEqual(["Reviewer A", "Reviewer B"]);
+  });
+
+  it("removeCritique moves it to the RecycleBin, never a hard delete, and it can be restored", () => {
+    const s = openEQ();
+    s().importCritique(validCritique());
+    const id = s().doc!.critiques[0]!.id;
+    s().removeCritique(id);
+    expect(s().doc!.critiques).toEqual([]);
+    expect(s().doc!.recycleBin.deletedNodes).toHaveLength(1);
+    expect(s().doc!.recycleBin.deletedNodes[0]!.originPath).toBe("critiques");
+
+    const restored = s().restoreDeleted(0);
+    expect(restored.restored).toBe(true);
+    expect(s().doc!.critiques[0]!.id).toBe(id);
+  });
+
+  it("the whole document still satisfies the canonical schema after critique import", () => {
+    const s = openEQ();
+    s().importCritique(validCritique());
     expect(() =>
       evaluationQuestionSchema.parse(JSON.parse(JSON.stringify(s().doc))),
     ).not.toThrow();

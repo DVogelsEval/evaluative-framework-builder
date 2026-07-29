@@ -3,6 +3,7 @@ import {
   PROJECT_SCHEMA_VERSION,
   SCHEMA_VERSION,
   type Cell,
+  type ComparisonValue,
   type Continuum,
   type DataDescriptionList,
   type EvaluationQuestion,
@@ -15,6 +16,7 @@ import {
   type OverallJudgement,
   type ProjectManifest,
   type Scenario,
+  type SimCase,
   type ValueSpan,
 } from "./schema";
 
@@ -77,8 +79,9 @@ export function createEvaluationQuestion(title: string): EvaluationQuestion {
     ],
     evidenceMethods: [],
     recycleBin: { deletedNodes: [] },
-    changeLog: [],
-    comments: [],
+    records: [],
+    simCases: [],
+    critiques: [],
     createdAt: ts,
     updatedAt: ts,
   };
@@ -231,4 +234,19 @@ export function createEvidenceTierRubric(criterionId: string): EvidenceTierRubri
     continuum: createMinimalContinuum(),
     methodLevelCells: [],
   };
+}
+
+/**
+ * A persisted hypothetical case (V2 Phase 2, Q62/Q67): `values` captures the
+ * Simulate Judgement sandbox's current session inputs verbatim — keyed
+ * `${nodeId}::${termSlotKey}`, same as `EvidenceValueInputs.tsx` builds and
+ * `simulateEvaluate.ts` expects — the caller passes whatever it already
+ * has; this factory does not touch the sandbox.
+ */
+export function createSimCase(
+  label: string,
+  prose: string,
+  values: Record<string, ComparisonValue>,
+): SimCase {
+  return { id: newId(), label, prose, values };
 }

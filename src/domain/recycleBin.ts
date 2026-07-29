@@ -1,6 +1,7 @@
 import type {
   Cell,
   Continuum,
+  Critique,
   DataDescriptionList,
   EvaluationQuestion,
   EvidenceLink,
@@ -10,7 +11,9 @@ import type {
   MesoLayer,
   MesoNode,
   OverallJudgement,
+  RecordEntry,
   Scenario,
+  SimCase,
 } from "./schema";
 
 /**
@@ -81,6 +84,15 @@ export function deletedItems(doc: EvaluationQuestion): DeletedItem[] {
     } else if (originPath.endsWith("/evidenceTier")) {
       kind = "Evidence tier";
       label = obj.shape === "list" ? "Data description list" : "Evidence-tier rubric";
+    } else if (originPath === "records") {
+      kind = "Decision record entry";
+      label = str(obj.changeSummary).trim() || "(no summary)";
+    } else if (originPath === "simCases") {
+      kind = "SIMULATED Case";
+      label = str(obj.label).trim() || "(unnamed case)";
+    } else if (originPath === "critiques") {
+      kind = "Imported critique";
+      label = str(obj.reviewerLabel).trim() || "(unlabelled reviewer)";
     }
 
     return { index, kind, label, deletedAt, originPath };
@@ -262,6 +274,36 @@ export function restoreDeletedItem(
     }
     (tier as EvidenceTierRubric).methodLevelCells.push(cell);
     return done("Rubric level cell");
+  }
+
+  // --- A V2 decision-record entry (Q64) ----------------------------------------
+  if (originPath === "records") {
+    const record = payload as RecordEntry;
+    if (doc.records.some((r) => r.id === record.id)) {
+      return fail("That record entry is already present.");
+    }
+    doc.records.push(record);
+    return done("Decision record entry");
+  }
+
+  // --- A V2 SimCase (Q62/Q67) ---------------------------------------------------
+  if (originPath === "simCases") {
+    const simCase = payload as SimCase;
+    if (doc.simCases.some((c) => c.id === simCase.id)) {
+      return fail("That case is already present.");
+    }
+    doc.simCases.push(simCase);
+    return done("SIMULATED Case");
+  }
+
+  // --- A V2 imported Critique (Q65) ---------------------------------------------
+  if (originPath === "critiques") {
+    const critique = payload as Critique;
+    if (doc.critiques.some((c) => c.id === critique.id)) {
+      return fail("That critique is already present.");
+    }
+    doc.critiques.push(critique);
+    return done("Imported critique");
   }
 
   // --- A whole evidence tier ---------------------------------------------------

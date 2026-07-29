@@ -83,9 +83,12 @@ test("condition builder: build, edit, toggle, error-handle, export, persist", as
   );
   await expect(page.getByTestId("bool-2-chain")).toContainText("and");
 
-  // A defeasible qualifier (R-COND-6): a free-text warrant
+  // A defeasible qualifier (R-COND-6): a typed warrant. The type is chosen
+  // first (Q63) — it unlocks the source/text fields, which are disabled
+  // until then.
   await page.getByTestId("bool-2").getByText("Defeasible qualifiers (optional)").click();
-  await page.getByTestId("bool-2-warrant").fill("Strong observed teaching is the core signal.");
+  await page.getByTestId("bool-2-warrant-type").selectOption({ label: "Methodological" });
+  await page.getByTestId("bool-2-warrant-text").fill("Strong observed teaching is the core signal.");
 
   // --- Scenario 2: edit a term, then toggle modes without losing data ---------
   await page.getByTestId("bool-2-term-0-edit").click();
@@ -157,7 +160,7 @@ test("condition builder: build, edit, toggle, error-handle, export, persist", as
   };
   expect(saved.schemaVersion).toBe(2); // Project file
   const eq = saved.evaluationQuestions[0]!;
-  expect(eq.schemaVersion).toBe(3); // embedded EQ
+  expect(eq.schemaVersion).toBe(5); // embedded EQ
   const conditions = eq.mesoLayers
     .flatMap((l) => l.nodes)
     .flatMap((n) => n.cells)

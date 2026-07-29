@@ -8,7 +8,8 @@ import {
   type FlatCondition,
 } from "../domain/BooleanParser";
 import type { EvidenceElement } from "../domain/conditionLexicon";
-import type { ConditionTerm, RubricCellCondition } from "../domain/schema";
+import type { ConditionTerm, RubricCellCondition, WarrantType } from "../domain/schema";
+import { WARRANT_SOURCE_PROMPTS, WARRANT_TYPE_LABELS } from "../domain/warrant";
 import { ConditionModal } from "./ConditionModal";
 import { ConditionTermToken } from "./ConditionTermToken";
 
@@ -351,15 +352,82 @@ function Qualifiers({
         </label>
       </div>
 
+      <WarrantField condition={condition} onPatch={onPatch} testId={testId} />
+    </details>
+  );
+}
+
+/**
+ * The warrant typology (V2 extension spec §3.1; Q63): choosing the type is the
+ * methodological act, so it happens FIRST — the free-text warrant field (and
+ * the `source` field) are `disabled` until a type is chosen, not merely hidden.
+ * Neutral order, no ranking or colour-coding of the five types.
+ */
+function WarrantField({
+  condition,
+  onPatch,
+  testId,
+}: {
+  condition: RubricCellCondition | undefined;
+  onPatch: (partial: Partial<RubricCellCondition>) => void;
+  testId: string;
+}) {
+  const warrant = condition?.warrant;
+  const type = warrant?.type ?? null;
+  const source = warrant?.source ?? "";
+  const text = warrant?.text ?? "";
+  const locked = type === null;
+
+  const patchWarrant = (partial: Partial<{ type: WarrantType | null; source: string; text: string }>) => {
+    const next = { type, source, text, ...partial };
+    if (next.type === null && next.source === "" && next.text === "") {
+      onPatch({ warrant: undefined });
+      return;
+    }
+    onPatch({ warrant: next });
+  };
+
+  return (
+    <div className="cond-warrant">
+      <label className="cond-field">
+        <span>Warrant type</span>
+        <select
+          data-testid={`${testId}-warrant-type`}
+          value={type ?? ""}
+          onChange={(e) =>
+            patchWarrant({ type: (e.target.value || null) as WarrantType | null })
+          }
+        >
+          <option value="">(choose a type)</option>
+          {(Object.keys(WARRANT_TYPE_LABELS) as WarrantType[]).map((t) => (
+            <option key={t} value={t}>
+              {WARRANT_TYPE_LABELS[t]}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="cond-field">
+        <span>{type ? WARRANT_SOURCE_PROMPTS[type] : "Source"}</span>
+        <input
+          type="text"
+          disabled={locked}
+          data-testid={`${testId}-warrant-source`}
+          value={source}
+          onChange={(e) => patchWarrant({ source: e.target.value })}
+        />
+      </label>
+
       <label className="cond-field">
         <span>Rationale (why this logic?)</span>
         <textarea
           rows={2}
-          data-testid={`${testId}-warrant`}
-          value={condition?.warrant ?? ""}
-          onChange={(e) => onPatch({ warrant: e.target.value || undefined })}
+          disabled={locked}
+          data-testid={`${testId}-warrant-text`}
+          value={text}
+          onChange={(e) => patchWarrant({ text: e.target.value })}
         />
       </label>
-    </details>
+    </div>
   );
 }

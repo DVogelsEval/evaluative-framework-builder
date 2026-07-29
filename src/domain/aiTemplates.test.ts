@@ -92,9 +92,9 @@ describe("mergeTemplateOverrides (R-141, ⚠Q57)", () => {
   });
 });
 
-describe("bundled defaults T1–T6 (AI-HANDOFF.md §5)", () => {
-  it("ships six templates that all parse with valid metadata", () => {
-    expect(DEFAULT_TEMPLATES).toHaveLength(6);
+describe("bundled defaults T1–T7 (AI-HANDOFF.md §5; T7 added V2 Phase 2.2)", () => {
+  it("ships seven templates that all parse with valid metadata", () => {
+    expect(DEFAULT_TEMPLATES).toHaveLength(7);
     for (const t of DEFAULT_TEMPLATES) {
       expect(t.id).not.toBe("");
       expect(t.title).not.toBe("");
@@ -117,5 +117,14 @@ describe("bundled defaults T1–T6 (AI-HANDOFF.md §5)", () => {
     for (const t of DEFAULT_TEMPLATES) {
       expect(defaultTemplateSource(t.id)).toBe(t.source);
     }
+  });
+
+  it("T7 (boundary cases, V2 Phase 2.2) is present, targets mesoNode, and uses the continuum/cell placeholders", () => {
+    const t7 = DEFAULT_TEMPLATES.find((t) => t.id === "boundary-cases");
+    expect(t7).toBeDefined();
+    expect(t7!.appliesTo).toBe("mesoNode");
+    expect(t7!.body).toContain("{{continuumTable}}");
+    expect(t7!.body).toContain("{{cellDescriptions}}");
+    expect(t7!.body).toContain("six");
   });
 });

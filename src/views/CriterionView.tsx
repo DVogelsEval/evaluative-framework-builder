@@ -31,6 +31,7 @@ function nodeLight(node: MesoNode): Light {
 export function CriterionView() {
   const doc = useStore((s) => s.doc);
   const setCellPlainDescription = useStore((s) => s.setCellPlainDescription);
+  const setCellDistinguishingCase = useStore((s) => s.setCellDistinguishingCase);
   const toggleCellIncluded = useStore((s) => s.toggleCellIncluded);
   const setView = useStore((s) => s.setView);
   const [gateMessages, setGateMessages] = useState<string[]>([]);
@@ -73,10 +74,18 @@ export function CriterionView() {
   const columnFor = (side: "negative" | "positive", i: number) =>
     side === "negative" ? i + 1 : barCol + 1 + i;
 
+  // The single rightmost column overall has no column to its right — the
+  // distinguishing-case prompt needs different wording there (Q63 build note).
+  const rightmostColumnId = positives[positives.length - 1]?.id;
+
   const cellAt = (column: Column, side: "negative" | "positive", gridColumn: number) => {
     const cell = cellByColumn.get(column.id);
     if (!cell) return null;
     const locked = cell.included && !canExcludeCell(node, layer.continuum, column.id);
+    const distinguishingPrompt =
+      column.id === rightmostColumnId
+        ? "Name a case that sits at this column and not beyond it. What makes it stop short of the top?"
+        : "Name a case that sits in this column and not the column to its right. What makes it stop short?";
     return (
       <div
         key={column.id}
@@ -100,6 +109,17 @@ export function CriterionView() {
           value={cell.plainDescription ?? ""}
           onChange={(e) => setCellPlainDescription(node.id, cell.id, e.target.value)}
         />
+        <details className="distinguishing-case">
+          <summary>Distinguishing case (optional)</summary>
+          <textarea
+            data-testid={`cell-distinguishing-${column.ordinal}`}
+            rows={2}
+            disabled={!cell.included}
+            placeholder={distinguishingPrompt}
+            value={cell.distinguishingCase ?? ""}
+            onChange={(e) => setCellDistinguishingCase(node.id, cell.id, e.target.value)}
+          />
+        </details>
       </div>
     );
   };
@@ -141,7 +161,20 @@ export function CriterionView() {
             </button>
           </div>
 
-          <h3 data-testid="criterion-title">{node.name}</h3>
+          <div className="criterion-title-row">
+            <h3 data-testid="criterion-title">{node.name}</h3>
+            <button
+              type="button"
+              className="link-button"
+              data-testid="criterion-timeline-link"
+              onClick={() => {
+                useStore.setState({ focusNodeId: node.id });
+                setView("criteriontimeline");
+              }}
+            >
+              View timeline
+            </button>
+          </div>
           <div className="continuum-grid rubric-row-grid" style={{ gridTemplateColumns }}>
             {negatives.map((c, i) => (
               <div key={c.id} className="col-header col-negative" style={{ gridColumn: columnFor("negative", i), gridRow: 1 }}>

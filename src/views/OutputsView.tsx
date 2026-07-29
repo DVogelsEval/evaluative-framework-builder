@@ -4,13 +4,17 @@ import {
   clarityNotes,
   columnsByBar,
   evidenceMatrix,
+  includedRecordEntries,
   justificationsByCriterion,
   matrixToCsv,
   methodOutputLabel,
   orderedNodesForOutput,
+  recordWithheldLine,
   toMarkdown,
 } from "../domain/output";
+import { labelForRef } from "../domain/recordRef";
 import { scenarioPlainText } from "../domain/scenario";
+import { SIMULATED_LABEL } from "../domain/simCase";
 import type { Cell, Column, Continuum, EvaluationQuestion, MesoLayer, MesoNode } from "../domain/schema";
 import { downloadText, saveJsonToDisk } from "../persistence/file";
 import { evalqFileName, outputFileName, useStore } from "../store/store";
@@ -340,6 +344,53 @@ export function OutputsView() {
                     {n.note}
                   </li>
                 ))}
+              </ul>
+            </div>
+          )}
+
+          {doc.records.length > 0 && (
+            <div className="output-page" data-testid="decision-record">
+              <h3>Decision record</h3>
+              {/* Non-suppressible — no export option may hide this line (Q64). */}
+              <p className="hint" data-testid="decision-record-withheld-line">
+                <strong>{recordWithheldLine(doc.records)}</strong>
+              </p>
+              <ul>
+                {includedRecordEntries(doc.records)
+                  .slice()
+                  .sort((a, b) => (a.timestamp < b.timestamp ? 1 : a.timestamp > b.timestamp ? -1 : 0))
+                  .map((entry) => (
+                    <li key={entry.id}>
+                      <strong>
+                        {entry.timestamp.slice(0, 10)}, {entry.author.trim() || "(unattributed)"} (
+                        {entry.prompt}):
+                      </strong>{" "}
+                      {labelForRef(doc, entry.elementRef)} — {entry.changeSummary}{" "}
+                      <em>Reason: {entry.reason}</em>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
+
+          {doc.simCases.length > 0 && (
+            <div className="output-page" data-testid="output-simulated-cases">
+              <h3>Cases ({SIMULATED_LABEL})</h3>
+              <p className="hint">
+                Every case below is a hypothetical the author wrote for testing the framework&apos;s
+                logic — never a recorded evaluation result.
+              </p>
+              <ul>
+                {[...doc.simCases]
+                  .sort((a, b) => a.label.localeCompare(b.label))
+                  .map((c) => (
+                    <li key={c.id}>
+                      <strong>
+                        {c.label || "(unnamed case)"} ({SIMULATED_LABEL}):
+                      </strong>{" "}
+                      {c.prose}
+                    </li>
+                  ))}
               </ul>
             </div>
           )}

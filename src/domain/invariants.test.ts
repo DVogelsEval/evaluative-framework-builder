@@ -13,6 +13,7 @@ import {
   checkCellContent,
   checkColumnHeaders,
   checkContinuum,
+  checkDistinguishingCase,
   checkDocument,
   checkEvidenceTier,
   checkMixedMethods,
@@ -20,8 +21,10 @@ import {
   checkNodeList,
   checkPlainDescriptionsComplete,
   checkScenariosComplete,
+  checkSimCaseAdvisory,
   checkSubMethodRetention,
   checkUniqueIds,
+  checkWarrantCompleteness,
 } from "./invariants";
 
 describe("Invariant 3 [gate] + 4 [report] — continuum shape", () => {
@@ -230,6 +233,90 @@ describe("Invariant 1 [report] — UUIDs assigned once, never reused", () => {
   });
 });
 
+describe("Invariant 21 [report] (V2, Q63) — cell-condition warrant completeness", () => {
+  it("reports a warrant with type: null (the migrated-legacy state)", () => {
+    const layer = createMinimalContinuum();
+    const node = createMesoNode({ id: "l", kind: "criteria", tierOrder: 0, continuum: layer, nodes: [] }, "Quality");
+    node.cells[0]!.condition = {
+      mode: "prose",
+      lastModified: new Date().toISOString(),
+      warrant: { type: null, source: "", text: "Migrated text." },
+    };
+    expect(checkWarrantCompleteness(node)).toEqual([
+      { invariant: 21, mode: "report", message: expect.stringContaining("missing a type or a source") },
+    ]);
+  });
+
+  it("reports a typed warrant with an empty source (authority is not exempt, Q63)", () => {
+    const layer = createMinimalContinuum();
+    const node = createMesoNode({ id: "l", kind: "criteria", tierOrder: 0, continuum: layer, nodes: [] }, "Quality");
+    node.cells[0]!.condition = {
+      mode: "prose",
+      lastModified: new Date().toISOString(),
+      warrant: { type: "authority", source: "", text: "Because mandated." },
+    };
+    expect(checkWarrantCompleteness(node)).toHaveLength(1);
+  });
+
+  it("is silent when every warrant has both a type and a non-empty source", () => {
+    const layer = createMinimalContinuum();
+    const node = createMesoNode({ id: "l", kind: "criteria", tierOrder: 0, continuum: layer, nodes: [] }, "Quality");
+    node.cells[0]!.condition = {
+      mode: "prose",
+      lastModified: new Date().toISOString(),
+      warrant: { type: "expert", source: "Head of teaching", text: "Because expertise." },
+    };
+    expect(checkWarrantCompleteness(node)).toEqual([]);
+  });
+
+  it("is silent when a cell carries no warrant at all — absence is not incompleteness", () => {
+    const layer = createMinimalContinuum();
+    const node = createMesoNode({ id: "l", kind: "criteria", tierOrder: 0, continuum: layer, nodes: [] }, "Quality");
+    expect(checkWarrantCompleteness(node)).toEqual([]);
+  });
+});
+
+describe("Invariant 22 [report] (V2, extension spec §3.2) — distinguishing case advisory", () => {
+  it("advises once when no cell of the node names a distinguishing case", () => {
+    const layer = createMinimalContinuum();
+    const node = createMesoNode({ id: "l", kind: "criteria", tierOrder: 0, continuum: layer, nodes: [] }, "Quality");
+    expect(checkDistinguishingCase(node)).toEqual([
+      { invariant: 22, mode: "report", message: expect.stringContaining("no distinguishing case") },
+    ]);
+  });
+
+  it("is silent once at least one cell names a distinguishing case", () => {
+    const layer = createMinimalContinuum();
+    const node = createMesoNode({ id: "l", kind: "criteria", tierOrder: 0, continuum: layer, nodes: [] }, "Quality");
+    node.cells[0]!.distinguishingCase = "Stops short of the next column.";
+    expect(checkDistinguishingCase(node)).toEqual([]);
+  });
+});
+
+describe("Invariant 23 [report] (V2 Phase 2, extension spec §5.1) — SimCase advisory", () => {
+  it("is silent when there are no cases at all", () => {
+    const doc = createEvaluationQuestion("EQ");
+    expect(checkSimCaseAdvisory(doc)).toEqual([]);
+  });
+
+  it("advises when a non-empty case set has no case marked expectedToFail", () => {
+    const doc = createEvaluationQuestion("EQ");
+    doc.simCases = [{ id: "c1", label: "A", prose: "", values: {} }];
+    expect(checkSimCaseAdvisory(doc)).toEqual([
+      { invariant: 23, mode: "report", message: expect.stringContaining("expected to fail") },
+    ]);
+  });
+
+  it("is silent once at least one case is marked expectedToFail", () => {
+    const doc = createEvaluationQuestion("EQ");
+    doc.simCases = [
+      { id: "c1", label: "A", prose: "", values: {} },
+      { id: "c2", label: "B", prose: "", values: {}, expectedToFail: true },
+    ];
+    expect(checkSimCaseAdvisory(doc)).toEqual([]);
+  });
+});
+
 describe("checkDocument — whole-document readiness", () => {
   it("lists gates for a fresh document and none for a complete skeleton", () => {
     const doc = createEvaluationQuestion("EQ");
@@ -256,6 +343,9 @@ describe("checkDocument — whole-document readiness", () => {
       scenario.parts = [{ kind: "text", text: "Survey scores land here." }];
       cell.scenarios.push(scenario);
     }
+    // V2 (Invariant 22): a genuinely complete framework names a
+    // distinguishing case somewhere on the node, not on every cell.
+    node.cells[0]!.distinguishingCase = "Only reaches this far, not further.";
     expect(checkDocument(doc)).toEqual([]);
   });
 });

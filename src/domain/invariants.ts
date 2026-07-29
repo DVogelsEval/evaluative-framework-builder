@@ -1,4 +1,6 @@
 import { scenarioDescribed } from "./scenario";
+import { hasExpectedFailureCase } from "./simCase";
+import { warrantIncomplete } from "./warrant";
 import type {
   Continuum,
   EvaluationQuestion,
@@ -341,6 +343,60 @@ export function checkMesoLayers(doc: EvaluationQuestion): InvariantIssue[] {
   return issues;
 }
 
+/**
+ * Invariant 21 [report] (V2, Q63): a cell condition's warrant, if present, is
+ * complete only once it has a type AND a non-empty source. Never a [gate] —
+ * a framework migrated from schema v3 must keep loading and completing with
+ * every legacy warrant reporting as incomplete, not blocked.
+ */
+export function checkWarrantCompleteness(node: MesoNode): InvariantIssue[] {
+  const incomplete = node.cells.filter((cell) => warrantIncomplete(cell.condition?.warrant));
+  return incomplete.length > 0
+    ? [
+        report(
+          21,
+          `"${node.name}" has ${incomplete.length} warrant(s) missing a type or a source.`,
+        ),
+      ]
+    : [];
+}
+
+/**
+ * Invariant 22 [report] (V2, extension spec §3.2): a subordinate node with no
+ * `distinguishingCase` on any of its cells gets one advisory (not one per
+ * cell — the prompt is per-cell, but the advisory is a single "you haven't
+ * used this yet" nudge, not a completeness score).
+ */
+export function checkDistinguishingCase(node: MesoNode): InvariantIssue[] {
+  const anyCase = node.cells.some((cell) => (cell.distinguishingCase ?? "").trim() !== "");
+  return anyCase
+    ? []
+    : [
+        report(
+          22,
+          `"${node.name}" has no distinguishing case named at any column — consider what stops each level short of the next.`,
+        ),
+      ];
+}
+
+/**
+ * Invariant 23 [report] (V2 Phase 2, extension spec §5.1): a case set with no
+ * case the author expects to fail reads as a demonstration, not a genuine
+ * test. Whole-document (not per-node), and silent when there are no cases at
+ * all — an author who hasn't started the review loop gets no nudge toward it.
+ */
+export function checkSimCaseAdvisory(doc: EvaluationQuestion): InvariantIssue[] {
+  if (doc.simCases.length === 0) return [];
+  return hasExpectedFailureCase(doc.simCases)
+    ? []
+    : [
+        report(
+          23,
+          "No SIMULATED Case is marked as expected to fail — a case set where everything passes reads as a demonstration, not a genuine test.",
+        ),
+      ];
+}
+
 /** Invariant 1 [report]: every id in the document is unique (UUIDs never reused). */
 export function checkUniqueIds(doc: EvaluationQuestion): InvariantIssue[] {
   const ids: string[] = [doc.id];
@@ -383,6 +439,8 @@ export function checkDocument(doc: EvaluationQuestion): InvariantIssue[] {
       issues.push(...checkNodeCells(node, layer.continuum));
       issues.push(...checkCellContent(node));
       issues.push(...checkPlainDescriptionsComplete(node));
+      issues.push(...checkWarrantCompleteness(node));
+      issues.push(...checkDistinguishingCase(node));
       if (layer.tierOrder === 0) {
         issues.push(...checkEvidenceTier(node));
         issues.push(...checkScenariosComplete(node));
@@ -397,5 +455,6 @@ export function checkDocument(doc: EvaluationQuestion): InvariantIssue[] {
     issues.push(...checkContinuum(doc.overallJudgement.continuum));
     issues.push(...checkSynthesisComplete(doc));
   }
+  issues.push(...checkSimCaseAdvisory(doc));
   return issues;
 }

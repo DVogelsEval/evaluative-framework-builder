@@ -1,7 +1,11 @@
 import { useRef, useState } from "react";
+import { canonicalise, freezeHash } from "../domain/freeze";
 import type { MapBox } from "../domain/homeMap";
 import { subordinateLayer, superiorLayer } from "../domain/layers";
+import { refForEq } from "../domain/recordRef";
+import { buildReviewArtefact } from "../domain/reviewArtefact";
 import { canSimulate } from "../domain/simulateGating";
+import { buildStateAsAtMarkdown, STATE_AS_AT_MARKER_SUMMARY } from "../domain/stateAsAt";
 import { downloadText, saveJsonToDisk, type SaveOutcome } from "../persistence/file";
 import { evalqFileName, outputFileName, projectFileName, useStore } from "../store/store";
 import { firstIncompleteView, frameworkComplete } from "../store/wizard";
@@ -26,7 +30,11 @@ export function HomeView() {
   // Per-button save feedback (⚠Q48): saved-in-place vs downloaded fallback.
   const [saveStatus, setSaveStatus] = useState<{ eq?: string; project?: string }>({});
   const [mapStatus, setMapStatus] = useState<string | undefined>();
+  const [freezeStatus, setFreezeStatus] = useState<string | undefined>();
+  const [reviewArtefactStatus, setReviewArtefactStatus] = useState<string | undefined>();
+  const [stateAsAtStatus, setStateAsAtStatus] = useState<string | undefined>();
   const mapSvgRef = useRef<SVGSVGElement>(null);
+  const addRecordEntry = useStore((s) => s.addRecordEntry);
 
   if (!doc) return null;
 
@@ -96,6 +104,24 @@ export function HomeView() {
     } catch {
       setMapStatus("Couldn't render the PNG in this browser — SVG export still works");
     }
+  };
+
+  // Freeze (V2, docs/FREEZE.md): one timestamp shared by the canonical form,
+  // the hash, and the RecordEntry so all three agree on "the freeze moment".
+  // No network call, ever — this only downloads a file and records the fact.
+  const freeze = async () => {
+    const at = new Date().toISOString();
+    const canonical = canonicalise(doc, at);
+    const hash = await freezeHash(doc, at);
+    downloadText(outputFileName(`${doc.title}-freeze`, "json"), canonical, "application/json");
+    addRecordEntry({
+      elementRef: refForEq(),
+      author: "",
+      changeSummary: `Froze the framework (SHA-256 ${hash.slice(0, 12)}…).`,
+      reason: "Framework state frozen for pre-registration / external reference.",
+      prompt: "freeze",
+    });
+    setFreezeStatus(`Frozen — SHA-256: ${hash}`);
   };
 
   return (
@@ -256,6 +282,70 @@ export function HomeView() {
         file, overwriting it in place each time (the browser asks where only on the
         first save). Your work is also autosaved in this browser.
       </p>
+
+      {/* Freeze (V2, docs/FREEZE.md): a pre-registration affordance — a
+          canonical JSON download plus its SHA-256 hash, computed entirely
+          in-browser. Publishing the hash elsewhere is the user's own act;
+          this app contacts no service. */}
+      <div className="save-controls">
+        <span className="save-control">
+          <button type="button" data-testid="freeze-framework" onClick={freeze}>
+            Freeze
+          </button>
+          {freezeStatus !== undefined && (
+            <span className="save-status" data-testid="freeze-status">
+              {freezeStatus}
+            </span>
+          )}
+        </span>
+      </div>
+      <p className="hint">
+        Downloads a canonical JSON snapshot and shows its SHA-256 hash — a
+        pre-registration commitment you can publish yourself, elsewhere.
+        Nothing is sent from here.
+      </p>
+
+      {/* State-as-at export (V2 Phase 3.3, extension spec §6): in developmental
+          evaluation the delta since the last export IS the finding — this
+          Markdown leads with what changed, then the framework as it stands.
+          The download itself writes no state; the marker RecordEntry written
+          right after is the only thing the NEXT export uses to find "since". */}
+      <div className="save-controls">
+        <span className="save-control">
+          <button
+            type="button"
+            data-testid="export-state-as-at"
+            onClick={() => {
+              downloadText(
+                outputFileName(`${doc.title}-state-as-at`, "md"),
+                buildStateAsAtMarkdown(doc),
+                "text/markdown",
+              );
+              addRecordEntry({
+                elementRef: refForEq(),
+                author: "",
+                changeSummary: STATE_AS_AT_MARKER_SUMMARY,
+                reason: "Marks the boundary for the next State-as-at export's delta window.",
+                prompt: "other",
+              });
+              setStateAsAtStatus("Downloaded — this becomes the new boundary for next time.");
+            }}
+          >
+            Export state as at [today]
+          </button>
+          {stateAsAtStatus !== undefined && (
+            <span className="save-status" data-testid="state-as-at-status">
+              {stateAsAtStatus}
+            </span>
+          )}
+        </span>
+      </div>
+      <p className="hint">
+        The framework as it stands, led by the deltas since your previous
+        State-as-at export and their recorded reasons — in developmental
+        evaluation, the delta is the finding.
+      </p>
+
       {doc.recycleBin.deletedNodes.length > 0 && (
         <button
           type="button"
@@ -266,6 +356,60 @@ export function HomeView() {
           Deleted items ({doc.recycleBin.deletedNodes.length})
         </button>
       )}
+      {doc.records.length > 0 && (
+        <button
+          type="button"
+          className="link-button"
+          data-testid="home-records"
+          onClick={() => setView("records")}
+        >
+          Decision record ({doc.records.length})
+        </button>
+      )}
+
+      {/* Review artefact (V2 Phase 2.3, extension spec §5.3): a single
+          self-contained HTML file — zero network requests, nothing sent
+          from here. The reviewer opens it locally and downloads their own
+          critique; nothing round-trips through this app automatically. */}
+      {doc.simCases.length > 0 && (
+        <div className="save-controls">
+          <span className="save-control">
+            <button
+              type="button"
+              data-testid="export-review-artefact"
+              onClick={() => {
+                downloadText(
+                  outputFileName(`${doc.title}-review`, "html"),
+                  buildReviewArtefact(doc),
+                  "text/html",
+                );
+                setReviewArtefactStatus("Downloaded — open it locally, no network needed.");
+              }}
+            >
+              Export review artefact (HTML, for reviewers)
+            </button>
+            {reviewArtefactStatus !== undefined && (
+              <span className="save-status" data-testid="review-artefact-status">
+                {reviewArtefactStatus}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* Critique import (V2 Phase 2.4, extension spec §5.4): reviewers'
+          critique files, side by side, disagreements first. */}
+      {doc.simCases.length > 0 && (
+        <button
+          type="button"
+          className="link-button"
+          data-testid="home-critiques"
+          onClick={() => setView("critiques")}
+        >
+          Critique import ({doc.critiques.length})
+        </button>
+      )}
+
       <button
         type="button"
         className="link-button"

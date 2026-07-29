@@ -95,9 +95,88 @@ function migrateV2toV3(doc: Raw): Raw {
   return { ...doc, schemaVersion: 3 };
 }
 
+/**
+ * v3 → v4 (V2 Phases 0+1, ONE bump per docs/OPEN-QUESTIONS.md Q73 — do not
+ * split this into two migrations later):
+ *
+ *  1. Every cell-condition `warrant` (subordinate cells AND Overall-Judgement
+ *     `conditionCells`) that is a bare string becomes `{type: null, source:
+ *     "", text: <original string>}` (Q63). `type: null` is the migrated-
+ *     legacy state — NEVER guess a type. A warrant that is absent or ""
+ *     stays absent; no empty warrant objects are manufactured.
+ *  2. `records: []` is added.
+ *  3. `changeLog` is retired: any entries it holds (in practice always empty
+ *     — nothing ever wrote to it) fold into `records` as low-priority,
+ *     export-excluded entries rather than being silently dropped (Q64), then
+ *     the `changeLog` key is deleted.
+ *  4. `distinguishingCase` (cells) and `sufficientBarLabel`/
+ *     `sufficientBarDefinition` (continua) are new OPTIONAL fields — absence
+ *     is valid, so nothing is manufactured for them here (Q66 point 4).
+ */
+function migrateV3toV4(doc: Raw): Raw {
+  const migrateWarrant = (condition: unknown): void => {
+    if (!isRaw(condition)) return;
+    const warrant = condition["warrant"];
+    if (typeof warrant === "string") {
+      condition["warrant"] = { type: null, source: "", text: warrant };
+    }
+  };
+
+  for (const layer of asArray(doc["mesoLayers"])) {
+    if (!isRaw(layer)) continue;
+    for (const node of asArray(layer["nodes"])) {
+      if (!isRaw(node)) continue;
+      for (const cell of asArray(node["cells"])) {
+        if (!isRaw(cell)) continue;
+        migrateWarrant(cell["condition"]);
+      }
+    }
+  }
+  const judgement = doc["overallJudgement"];
+  if (isRaw(judgement)) {
+    for (const entry of asArray(judgement["conditionCells"])) {
+      if (isRaw(entry)) migrateWarrant(entry["condition"]);
+    }
+  }
+
+  const records: Raw[] = [];
+  for (const entry of asArray(doc["changeLog"])) {
+    if (!isRaw(entry)) continue;
+    const nodeId = typeof entry["nodeId"] === "string" ? entry["nodeId"] : undefined;
+    records.push({
+      id: entry["id"],
+      elementRef: nodeId ? `node:${nodeId}` : "eq",
+      timestamp: entry["timestamp"],
+      author: "(migrated)",
+      changeSummary: String(entry["note"] ?? ""),
+      reason: "(migrated — no reason was recorded)",
+      prompt: "other",
+      includeInExport: false,
+    });
+  }
+
+  const { changeLog: _drop, ...rest } = doc;
+  return { ...rest, records, schemaVersion: 4 };
+}
+
+/**
+ * v4 → v5 (V2 Phase 2, ONE bump per docs/OPEN-QUESTIONS.md Q73):
+ *  1. `simCases: []` and `critiques: []` are added.
+ *  2. `comments` is retired (Q65) — it was always empty in practice (an
+ *     unused stub, like `changeLog` was), so it is dropped rather than
+ *     migrated into anything; `Critique` supersedes it as the review-loop
+ *     object.
+ */
+function migrateV4toV5(doc: Raw): Raw {
+  const { comments: _drop, ...rest } = doc;
+  return { ...rest, simCases: [], critiques: [], schemaVersion: 5 };
+}
+
 const migrations: Record<number, Migration> = {
   1: migrateV1toV2,
   2: migrateV2toV3,
+  3: migrateV3toV4,
+  4: migrateV4toV5,
 };
 
 /**

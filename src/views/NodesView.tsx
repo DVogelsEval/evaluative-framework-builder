@@ -2,8 +2,11 @@ import { useState } from "react";
 import { negativeColumns, positiveColumns } from "../domain/continuum";
 import { checkNodeList } from "../domain/invariants";
 import { canExcludeCell } from "../domain/meso";
+import { refForNode } from "../domain/recordRef";
 import type { Column, MesoNode } from "../domain/schema";
 import { useStore, type NodeTextField } from "../store/store";
+import { RecordPromptBanner } from "./RecordPromptBanner";
+import { useRecordPrompt } from "./useRecordPrompt";
 import { WizardNav } from "./WizardNav";
 
 /**
@@ -22,6 +25,10 @@ export function NodesView() {
   const setImportanceReach = useStore((s) => s.setImportanceReach);
   const setView = useStore((s) => s.setView);
   const [gateMessages, setGateMessages] = useState<string[]>([]);
+  // V2 record layer (Q64): adding/removing a node is load-bearing. Removal is
+  // the clearer prompt point — adding a fresh, still-empty node has nothing
+  // yet worth a reason.
+  const recordPrompt = useRecordPrompt();
 
   const layer = doc?.mesoLayers.find((l) => l.tierOrder === 0);
   if (!doc || !layer) return null;
@@ -120,7 +127,15 @@ export function NodesView() {
               data-testid={`remove-node-${node.order}`}
               aria-label={`Remove "${node.name}"`}
               title="Remove (moves to the Recycle Bin)"
-              onClick={() => removeNode(node.id)}
+              onClick={() => {
+                const name = node.name;
+                removeNode(node.id);
+                recordPrompt.offer({
+                  elementRef: refForNode(node.id),
+                  changeSummary: `Removed ${nodeLabel} "${name || "(unnamed)"}".`,
+                  previousValue: name,
+                });
+              }}
             >
               ×
             </button>
@@ -148,6 +163,13 @@ export function NodesView() {
       <button type="button" className="secondary" data-testid="add-node" onClick={() => addNode()}>
         + Add {nodeLabel}
       </button>
+
+      <RecordPromptBanner
+        pending={recordPrompt.pending}
+        onSave={recordPrompt.save}
+        onDismiss={recordPrompt.dismiss}
+        testId="nodes-record-prompt"
+      />
 
       <WizardNav
         continueTestId="nodes-continue"

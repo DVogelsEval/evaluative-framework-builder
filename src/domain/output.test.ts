@@ -62,10 +62,16 @@ describe("conditionSummary + Markdown conditions (Slice 13, R-COND-12)", () => {
           } },
           plainEnglish: "[Method A] is Strong",
         },
-        warrant: "Strong teaching is the core signal.",
+        warrant: {
+          type: "expert",
+          source: "Head of teaching and learning",
+          text: "Strong teaching is the core signal.",
+        },
         lastModified: "2026-07-24T00:00:00.000Z",
       }),
-    ).toBe("[Method A] is Strong; rationale: Strong teaching is the core signal.");
+    ).toBe(
+      "[Method A] is Strong; rationale: Expert (Head of teaching and learning) — Strong teaching is the core signal.",
+    );
   });
 
   it("summarises a prose condition and returns '' for an empty one", () => {
@@ -404,5 +410,19 @@ describe("toMarkdown (Q21/Q51)", () => {
     expect(toMarkdown(doc())).toContain(
       "Teaching quality is Sufficient makes Delivery strong.",
     );
+  });
+
+  it("omits the Cases section when there are none, and labels every case SIMULATED when present (Q62/Q67)", () => {
+    buildTwoMethodNode();
+    expect(toMarkdown(doc())).not.toContain("Cases (SIMULATED)");
+
+    s().addSimCase({
+      label: "Borderline lesson",
+      prose: "Good pacing, no differentiation.",
+      values: {},
+    });
+    const md = toMarkdown(doc());
+    expect(md).toContain("## Cases (SIMULATED)");
+    expect(md).toContain("**Borderline lesson (SIMULATED):** Good pacing, no differentiation.");
   });
 });

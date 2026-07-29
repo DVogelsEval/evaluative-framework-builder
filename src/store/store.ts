@@ -18,21 +18,26 @@ import {
   createProjectManifest,
   createScenario,
   createSecondMesoLayer,
+  createSimCase,
   createValueSpan,
 } from "../domain/factory";
 import { superiorLayer as findSuperiorLayer } from "../domain/layers";
 import { canExcludeCell } from "../domain/meso";
 import { restoreDeletedItem, type RestoreResult } from "../domain/recycleBin";
+import { critiqueSchema } from "../domain/schema";
 import { firstIncompleteView } from "./wizard";
 import type {
+  ComparisonValue,
   Continuum,
   EvaluationQuestion,
   MesoLayer,
   MesoNode,
   MixedMethodsType,
   ProjectManifest,
+  RecordEntry,
   RubricCellCondition,
   ScenarioPart,
+  SimCase,
 } from "../domain/schema";
 
 /**
@@ -58,7 +63,10 @@ export type View =
   | "outputs"
   | "aihandoff"
   | "simulate"
-  | "deleted";
+  | "deleted"
+  | "records"
+  | "critiques"
+  | "criteriontimeline";
 
 /** The three per-node warrant fields (R-050–R-052) plus the name (R-153). */
 export type NodeTextField =
@@ -98,6 +106,7 @@ export interface AppState {
   setImportanceReach: (nodeId: string, columnId: string, reach: boolean) => void;
   confirmRubricReview: () => void;
   setCellPlainDescription: (nodeId: string, cellId: string, text: string) => void;
+  setCellDistinguishingCase: (nodeId: string, cellId: string, text: string) => void;
   toggleCellIncluded: (nodeId: string, cellId: string) => void;
   addEvidenceMethod: (
     nodeId: string,
@@ -200,6 +209,46 @@ export interface AppState {
   setJudgementCondition: (columnId: string, condition: RubricCellCondition | null) => void;
   setSynthesisFreeText: (text: string) => void;
   setNotes: (text: string) => void;
+  /** V2 record layer (docs/ROADMAP-V2.md §1.3, Q64). Reasoned changes only —
+   *  never called automatically from a mutation; a view offers the prompt
+   *  after calling the mutating action, and only saves it on explicit submit
+   *  (see src/views/useRecordPrompt.ts). `id`/`timestamp` are stamped here. */
+  addRecordEntry: (entry: {
+    elementRef: string;
+    author: string;
+    changeSummary: string;
+    reason: string;
+    prompt: RecordEntry["prompt"];
+    previousValue?: string;
+    newValue?: string;
+    includeInExport?: boolean;
+  }) => void;
+  updateRecordEntry: (id: string, patch: Partial<RecordEntry>) => void;
+  /** Excluding an entry from export is a deliberate per-entry act (R-ROADMAP §1.4). */
+  setRecordIncludeInExport: (id: string, include: boolean) => void;
+  /** Deletions go to the RecycleBin, never a hard delete (CLAUDE.md). */
+  removeRecordEntry: (id: string) => void;
+  /** V2 review loop (docs/ROADMAP-V2.md §2.1, Q62/Q67). `values` is the
+   *  Simulate Judgement sandbox's session inputs, saved verbatim — this
+   *  action never touches simulateEvaluate.ts (see src/domain/simCase.ts). */
+  addSimCase: (input: {
+    label: string;
+    prose: string;
+    values: Record<string, ComparisonValue>;
+    authorNotes?: string;
+    expectedToFail?: boolean;
+  }) => void;
+  updateSimCase: (id: string, patch: Partial<Omit<SimCase, "id">>) => void;
+  /** Deletions go to the RecycleBin, never a hard delete (CLAUDE.md). */
+  removeSimCase: (id: string) => void;
+  /** V2 review loop (docs/ROADMAP-V2.md §2.4, Q65): import an already-
+   *  downloaded critique JSON — validated through critiqueSchema like every
+   *  other I/O boundary. Never mutates anything beyond appending it; a
+   *  disagreement is only ever promoted to a RecordEntry by an explicit,
+   *  separate addRecordEntry call from the view. */
+  importCritique: (raw: unknown) => { success: boolean; error?: string };
+  /** Deletions go to the RecycleBin, never a hard delete (CLAUDE.md). */
+  removeCritique: (id: string) => void;
   /** Restore a RecycleBin entry by index (Slice 10, R-149/Q18/⚠Q56). Returns
    *  what happened so the Deleted view can report success or the reason not. */
   restoreDeleted: (index: number) => RestoreResult;
@@ -477,6 +526,16 @@ export const useStore = create<AppState>()((set, get) => {
       });
     },
 
+    // V2 extension spec §3.2 (Invariant 22): prompted, never gated. Mirrors
+    // setCellPlainDescription's included-only guard for consistency with
+    // Invariant 6 (excluded cells carry no content).
+    setCellDistinguishingCase: (nodeId, cellId, text) => {
+      mutateDoc((doc) => {
+        const cell = findCell(doc, nodeId, cellId);
+        if (cell?.included) cell.distinguishingCase = text || undefined;
+      });
+    },
+
     // Excluding a cell withholds its content (Invariant 6) — cleared, not kept.
     // Closing the last open cell on either side of the bar is refused (Q7/⚠Q36).
     toggleCellIncluded: (nodeId, cellId) => {
@@ -489,6 +548,7 @@ export const useStore = create<AppState>()((set, get) => {
         cell.included = !cell.included;
         if (!cell.included) {
           delete cell.plainDescription;
+          delete cell.distinguishingCase;
           cell.scenarios = [];
         }
       });
@@ -1251,6 +1311,118 @@ export const useStore = create<AppState>()((set, get) => {
       mutateDoc((doc) => {
         if (text === "") delete doc.notes;
         else doc.notes = text;
+      });
+    },
+
+    // V2 record layer (docs/ROADMAP-V2.md §1.3, Q64) — reasoned-change
+    // history. `reason` is enforced non-empty at the schema boundary
+    // (recordEntrySchema), not just here; this action never runs
+    // automatically from another mutation (that would be exactly the
+    // auto-logging the extension spec forbids).
+    addRecordEntry: (entry) => {
+      mutateDoc((doc) => {
+        doc.records.push({
+          id: crypto.randomUUID(),
+          elementRef: entry.elementRef,
+          timestamp: new Date().toISOString(),
+          author: entry.author,
+          changeSummary: entry.changeSummary,
+          reason: entry.reason,
+          prompt: entry.prompt,
+          includeInExport: entry.includeInExport ?? true,
+          ...(entry.previousValue !== undefined ? { previousValue: entry.previousValue } : {}),
+          ...(entry.newValue !== undefined ? { newValue: entry.newValue } : {}),
+        });
+      });
+    },
+
+    updateRecordEntry: (id, patch) => {
+      mutateDoc((doc) => {
+        const entry = doc.records.find((r) => r.id === id);
+        if (entry) Object.assign(entry, patch);
+      });
+    },
+
+    setRecordIncludeInExport: (id, include) => {
+      mutateDoc((doc) => {
+        const entry = doc.records.find((r) => r.id === id);
+        if (entry) entry.includeInExport = include;
+      });
+    },
+
+    // Never a hard delete (CLAUDE.md) — the entry moves to the RecycleBin like
+    // everything else, restorable via the "records" originPath case.
+    removeRecordEntry: (id) => {
+      mutateDoc((doc) => {
+        const index = doc.records.findIndex((r) => r.id === id);
+        if (index < 0) return;
+        const [entry] = doc.records.splice(index, 1);
+        doc.recycleBin.deletedNodes.push({
+          node: entry,
+          deletedAt: new Date().toISOString(),
+          originPath: "records",
+        });
+      });
+    },
+
+    // V2 review loop (docs/ROADMAP-V2.md §2.1, Q62/Q67) — persists an
+    // authored hypothetical. Never touches simulateEvaluate.ts; `values` is
+    // opaque data to the store, shaped by the caller (SimulateJudgementView).
+    addSimCase: ({ label, prose, values, authorNotes, expectedToFail }) => {
+      mutateDoc((doc) => {
+        const next = createSimCase(label, prose, values);
+        if (authorNotes !== undefined) next.authorNotes = authorNotes;
+        if (expectedToFail !== undefined) next.expectedToFail = expectedToFail;
+        doc.simCases.push(next);
+      });
+    },
+
+    updateSimCase: (id, patch) => {
+      mutateDoc((doc) => {
+        const c = doc.simCases.find((sc) => sc.id === id);
+        if (c) Object.assign(c, patch);
+      });
+    },
+
+    // Never a hard delete (CLAUDE.md) — restorable via the "simCases" originPath case.
+    removeSimCase: (id) => {
+      mutateDoc((doc) => {
+        const index = doc.simCases.findIndex((c) => c.id === id);
+        if (index < 0) return;
+        const [entry] = doc.simCases.splice(index, 1);
+        doc.recycleBin.deletedNodes.push({
+          node: entry,
+          deletedAt: new Date().toISOString(),
+          originPath: "simCases",
+        });
+      });
+    },
+
+    // V2 review loop (docs/ROADMAP-V2.md §2.4, Q65) — validated through
+    // critiqueSchema like every other I/O boundary (R-011/R-012 discipline).
+    // Never mutates the framework beyond appending the critique itself.
+    importCritique: (raw) => {
+      const parsed = critiqueSchema.safeParse(raw);
+      if (!parsed.success) {
+        return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid critique file." };
+      }
+      mutateDoc((doc) => {
+        doc.critiques.push(parsed.data);
+      });
+      return { success: true };
+    },
+
+    // Never a hard delete (CLAUDE.md) — restorable via the "critiques" originPath case.
+    removeCritique: (id) => {
+      mutateDoc((doc) => {
+        const index = doc.critiques.findIndex((c) => c.id === id);
+        if (index < 0) return;
+        const [entry] = doc.critiques.splice(index, 1);
+        doc.recycleBin.deletedNodes.push({
+          node: entry,
+          deletedAt: new Date().toISOString(),
+          originPath: "critiques",
+        });
       });
     },
 

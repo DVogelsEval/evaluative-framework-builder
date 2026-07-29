@@ -9,7 +9,11 @@ import { z } from "zod";
  * `invariants.ts` so a mid-build document always loads.
  */
 
-export const SCHEMA_VERSION = 3;
+/** v5 (V2 Phase 2, one bump per docs/OPEN-QUESTIONS.md Q73): `SimCase` — a
+ *  persisted hypothetical case for the review loop (Q62/Q67) — and
+ *  `Critique` — an imported reviewer's placements (Q65) — replacing the
+ *  unused `comments` stub. See `migrateV4toV5`. */
+export const SCHEMA_VERSION = 5;
 
 /** The Project document's shape is versioned separately from the EQ document.
  *  v2 (owner, 2026-07-25): a Project now *embeds* its Evaluation Questions in
@@ -42,6 +46,15 @@ export const continuumSchema = z.object({
   id: uuid,
   columns: z.array(columnSchema), // ordered left→right (R-040)
   sufficientBarAfterOrdinal: z.number().int(), // bar sits between columns (R-037)
+  // V2 (Q66, owner-delegated 2026-07-28): the bar in the evaluator's own words —
+  // what "good enough" means here. On the SHARED schema so every continuum can
+  // carry it without a forked type, but the UI exposes these two inputs on the
+  // MESO LAYER's continuum only (never the evidence-tier or judgement
+  // continua, though the fields exist there too — see docs/OPEN-QUESTIONS.md
+  // Q66 point 2). Both optional; absence is never gated, never manufactured by
+  // a migration.
+  sufficientBarLabel: z.string().optional(),
+  sufficientBarDefinition: z.string().optional(),
 });
 
 // ---- Evidence tier -----------------------------------------------------------
@@ -227,6 +240,33 @@ export const booleanConditionTreeSchema = z.object({
 // or freeform prose (R-COND-6).
 const booleanOrProse = z.union([booleanConditionTreeSchema, z.string()]);
 
+// The warrant typology (V2 extension spec §3.1, Nunns/Peace/Witten 2015; owner
+// decision Q63, docs/OPEN-QUESTIONS.md): choosing the TYPE before the free-text
+// backing is the methodological point, not a UI preference — the app disables
+// the text field until a type is chosen. `type: null` is the migrated-legacy /
+// not-yet-typed state; it is [report], never [gate] (an existing framework must
+// keep loading and completing). `source` is required text for ALL FIVE types,
+// including `authority` — naming the authority is the whole value of that
+// category, so it is never made optional for it alone.
+//
+// Scope is deliberately narrow (Q63): this typology applies ONLY to this
+// field, `RubricCellCondition.warrant`. It does NOT extend to the three
+// per-MesoNode prose fields (`linkToQuestion`/`linkToValues`/`decisionsOrUse`)
+// that src/domain/output.ts calls "warrant boxes" — those stay untyped prose.
+export const warrantTypeSchema = z.enum([
+  "literature",
+  "cultural",
+  "methodological",
+  "expert",
+  "authority",
+]);
+
+export const warrantSchema = z.object({
+  type: warrantTypeSchema.nullable(),
+  source: z.string(), // required for all five types (empty string = incomplete, [report])
+  text: z.string(), // the Toulmin backing itself
+});
+
 export const rubricCellConditionSchema = z.object({
   mode: z.enum(["boolean", "prose"]), // the active representation (R-COND-7)
   booleanLogic: booleanConditionTreeSchema.optional(),
@@ -245,11 +285,13 @@ export const rubricCellConditionSchema = z.object({
       action: z.enum(["block", "reconsider"]),
     })
     .optional(),
-  warrant: z.string().optional(), // Toulmin backing, freeform
+  warrant: warrantSchema.optional(), // Toulmin backing — typed (V2 Q63)
   lastModified: isoDateTime,
 });
 
 export type BooleanConditionTree = z.infer<typeof booleanConditionTreeSchema>;
+export type WarrantType = z.infer<typeof warrantTypeSchema>;
+export type Warrant = z.infer<typeof warrantSchema>;
 export type RubricCellCondition = z.infer<typeof rubricCellConditionSchema>;
 
 // ---- Meso tier ---------------------------------------------------------------
@@ -265,6 +307,10 @@ export const cellSchema = z.object({
   // When this cell's conclusion applies — Slice 13 (R-COND-8). Optional: absent
   // means no condition authored yet (equivalent to empty prose).
   condition: rubricCellConditionSchema.optional(),
+  // V2 extension spec §3.2: a case at this column and NOT the column to its
+  // right — what makes it stop short. Prompted, never gated; absence is a
+  // [report] advisory only when no cell of the node has one at all.
+  distinguishingCase: z.string().optional(),
 });
 
 // Qualitative importance/reach mark — never a numeric weight (Q11). One per
@@ -344,13 +390,38 @@ export const overallJudgementSchema = z.object({
 
 // ---- Cross-cutting -----------------------------------------------------------
 
-export const changeLogEntrySchema = z.object({
+// V2 record layer (extension spec §4; owner decision Q64, docs/OPEN-QUESTIONS.md):
+// a REASONED-CHANGE history, not an edit log. `RecordEntry` is a new entity —
+// NOT a rename of the present-but-unused `ChangeLogEntry` stub it replaces
+// (R-016, the hourly-checkpoint feature, stays dropped; auto-logging every
+// edit is exactly what this layer refuses to do — see Phase 1.3).
+//
+// `elementRef` format (pinned in docs/ROADMAP-V2.md §1.2, not free text):
+//   eq | layer:<id> | layer:<id>/bar | layer:<id>/column:<id> | node:<id> |
+//   node:<id>/importance | node:<id>/cell:<id> | node:<id>/cell:<id>/condition |
+//   judgement | judgement/column:<id>
+// Built and parsed only by src/domain/recordRef.ts — never hand-typed elsewhere.
+export const recordPromptSchema = z.enum([
+  "objection",
+  "evidence",
+  "stakeholder-session",
+  "internal-review",
+  "reviewer-critique", // set by the Phase 2 critique-promotion action
+  "freeze", // set by the Freeze action
+  "other",
+]);
+
+export const recordEntrySchema = z.object({
   id: uuid,
-  nodeId: uuid.optional(),
+  elementRef: z.string(),
   timestamp: isoDateTime,
-  note: z.string(),
-  before: z.unknown().optional(),
-  after: z.unknown().optional(),
+  author: z.string(), // free text, user-entered, may be a role
+  changeSummary: z.string(),
+  reason: z.string().min(1), // MUST be non-empty — the whole point of this layer
+  prompt: recordPromptSchema,
+  previousValue: z.string().optional(),
+  newValue: z.string().optional(),
+  includeInExport: z.boolean(), // default true; excluding is a deliberate per-entry act
 });
 
 export const recycleBinSchema = z.object({
@@ -363,13 +434,48 @@ export const recycleBinSchema = z.object({
   ),
 });
 
-// Present-but-unused stub for the v2 critique/fork path (Arch §9).
-export const commentSchema = z.object({
+// ---- V2 review loop (extension spec §5; Q62/Q65/Q67) -------------------------
+//
+// `SimCase` is a persisted, AUTHORED hypothetical — never a recorded
+// evaluation result (Q29 stands). It supersedes the `comments` stub (Q65),
+// which retires in the same v4→v5 migration. Named `SimCase` (UI: "Case"),
+// never `Scenario` — that name is already bound to the OR'd token-prose
+// inside a rubric cell (docs/SPEC_MAPPING.md §2). Every rendering of a
+// SimCase, everywhere, carries an unsuppressible SIMULATED label
+// (src/domain/simCase.ts SIMULATED_LABEL) — the same non-suppressible
+// principle as the Phase 1 record layer's withheld-count line.
+//
+// `values` is keyed EXACTLY like `simulateEvaluate.ts`'s `SessionInputs` —
+// the "global session key" EvidenceValueInputs.tsx builds:
+// `${nodeId}::${termSlotKey(term)}` (termSlotKey itself is the element id,
+// or `${elementId}::pattern::${flag}` for a pattern query) — so a saved
+// case feeds the existing evaluator with no translation layer. Do not
+// invent a second keying scheme, and do not drop the nodeId prefix when
+// constructing values by hand (e.g. in a test fixture).
+export const simCaseSchema = z.object({
   id: uuid,
-  nodeId: uuid.optional(),
-  authorLabel: z.string(),
-  text: z.string(),
-  createdAt: isoDateTime,
+  label: z.string(),
+  prose: z.string(), // the vignette, plain language
+  values: z.record(z.string(), comparisonValueSchema),
+  authorNotes: z.string().optional(), // never shown to reviewers
+  expectedToFail: z.boolean().optional(), // author's expectation, hidden from reviewers
+});
+
+// An imported reviewer's critique of a SimCase set (Q65). Placements are
+// display-only, side by side across reviewers — never aggregated, averaged,
+// or vote-counted (extension spec decision 9).
+export const critiqueSchema = z.object({
+  id: uuid,
+  reviewerLabel: z.string(),
+  importedAt: isoDateTime,
+  placements: z.array(
+    z.object({
+      simCaseId: uuid,
+      placedAtColumnId: uuid,
+      objection: z.string().optional(),
+    }),
+  ),
+  addedCases: z.array(z.object({ label: z.string(), prose: z.string() })),
 });
 
 // ---- The on-disk documents ---------------------------------------------------
@@ -389,8 +495,9 @@ export const evaluationQuestionSchema = z.object({
   // predicate needs (mirrors mixedMethodsResolved). Accepting clears it.
   synthesisDeclined: z.boolean().optional(),
   recycleBin: recycleBinSchema,
-  changeLog: z.array(changeLogEntrySchema),
-  comments: z.array(commentSchema),
+  records: z.array(recordEntrySchema), // V2 record layer (Q64) — replaces changeLog
+  simCases: z.array(simCaseSchema), // V2 review loop (Q62/Q67)
+  critiques: z.array(critiqueSchema), // V2 review loop (Q65) — replaces comments
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
 });
@@ -428,8 +535,10 @@ export type Cell = z.infer<typeof cellSchema>;
 export type ImportanceMark = z.infer<typeof importanceMarkSchema>;
 export type MesoNode = z.infer<typeof mesoNodeSchema>;
 export type MesoLayer = z.infer<typeof mesoLayerSchema>;
-export type ChangeLogEntry = z.infer<typeof changeLogEntrySchema>;
+export type RecordPrompt = z.infer<typeof recordPromptSchema>;
+export type RecordEntry = z.infer<typeof recordEntrySchema>;
 export type RecycleBin = z.infer<typeof recycleBinSchema>;
-export type Comment = z.infer<typeof commentSchema>;
+export type SimCase = z.infer<typeof simCaseSchema>;
+export type Critique = z.infer<typeof critiqueSchema>;
 export type EvaluationQuestion = z.infer<typeof evaluationQuestionSchema>;
 export type ProjectManifest = z.infer<typeof projectManifestSchema>;

@@ -5,6 +5,7 @@ import { firstIncompleteView } from "./store/wizard";
 import { AiHandoffView } from "./views/AiHandoffView";
 import { ConnectView } from "./views/ConnectView";
 import { ContinuumView } from "./views/ContinuumView";
+import { CriterionTimelineView } from "./views/CriterionTimelineView";
 import { CriterionView } from "./views/CriterionView";
 import { DeletedView } from "./views/DeletedView";
 import { EvidenceView } from "./views/EvidenceView";
@@ -13,7 +14,9 @@ import { MixedMethodsView } from "./views/MixedMethodsView";
 import { NodesView } from "./views/NodesView";
 import { NotesPanel } from "./views/NotesPanel";
 import { OutputsView } from "./views/OutputsView";
+import { CritiqueView } from "./views/CritiqueView";
 import { QuestionView } from "./views/QuestionView";
+import { RecordTimelineView } from "./views/RecordTimelineView";
 import { ReviewView } from "./views/ReviewView";
 import { SecondLayerView } from "./views/SecondLayerView";
 import { SimulateJudgementView } from "./views/SimulateJudgementView";
@@ -87,6 +90,9 @@ export function App() {
         {view === "aihandoff" && <AiHandoffView />}
         {view === "simulate" && <SimulateJudgementView />}
         {view === "deleted" && <DeletedView />}
+        {view === "records" && <RecordTimelineView />}
+        {view === "critiques" && <CritiqueView />}
+        {view === "criteriontimeline" && <CriterionTimelineView />}
       </main>
       {doc && notesOpen && <NotesPanel onClose={() => setNotesOpen(false)} />}
     </div>
