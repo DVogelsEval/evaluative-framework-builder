@@ -102,7 +102,7 @@ export function SynthesisView() {
             onClick={() => setView("secondlayer")}
           >
             Or group these {nodeLabel === "criterion" ? "criteria" : "components"} under a
-            higher layer first, and judge that instead (R-099)
+            higher layer first, and judge that instead
           </button>
         )}
         <div className="wizard-nav">
@@ -502,8 +502,8 @@ export function SynthesisView() {
           </div>
 
           <label className="synthesis-free-text">
-            Or write the whole synthesis in your own words instead (R-112 escape hatch —
-            this satisfies the step by itself)
+            Or write the whole synthesis in your own words instead — this satisfies the
+            step by itself
             <textarea
               rows={3}
               data-testid="syn-free-text"

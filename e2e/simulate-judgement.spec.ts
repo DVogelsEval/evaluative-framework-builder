@@ -56,7 +56,7 @@ async function addTerm(
   comparatorLabel: string,
   value: { select: string } | { column: string },
 ) {
-  await page.getByTestId(`${boolTestId}-add-and`).click();
+  await page.getByTestId(`${boolTestId}-add-term`).click();
   await expect(page.getByTestId("cond-modal-element")).toBeVisible();
   await page.getByTestId("cond-modal-element").selectOption({ label: elementLabel });
   await page.getByTestId("cond-modal-comparator").selectOption({ label: comparatorLabel });

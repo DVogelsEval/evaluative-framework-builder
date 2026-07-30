@@ -143,7 +143,7 @@ export function StartView() {
           {switching && (
             <p className="hint">
               Your current Project&apos;s file stays where you saved it — if you
-              haven&apos;t saved it yet, do that from the Home Window first (Q40).
+              haven&apos;t saved it yet, do that from the Home Window first.
             </p>
           )}
         </div>

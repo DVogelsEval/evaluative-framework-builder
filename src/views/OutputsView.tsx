@@ -3,6 +3,7 @@ import { findColumnInAnyLayer } from "../domain/layers";
 import {
   clarityNotes,
   columnsByBar,
+  conditionSummary,
   evidenceMatrix,
   includedRecordEntries,
   justificationsByCriterion,
@@ -333,7 +334,7 @@ export function OutputsView() {
             <div className="output-page" data-testid="clarity-notes">
               <h3>Clarity notes</h3>
               <p className="hint">
-                Conclusions flagged as possibly not clearly evidenced (R-096):
+                Conclusions flagged as possibly not clearly evidenced:
               </p>
               <ul>
                 {notes.map((n, i) => (
@@ -425,6 +426,27 @@ function ScenarioList({
   );
 }
 
+/** A conclusion's condition (boolean or prose summary) and, when present, its
+ *  distinguishing case — the rest of the logical flow beneath its scenarios
+ *  (Q74/D7). Renders nothing when both are empty. */
+function ConditionAndCase({
+  condition,
+  distinguishingCase,
+}: {
+  condition: string;
+  distinguishingCase: string;
+}) {
+  if (condition === "" && distinguishingCase === "") return null;
+  return (
+    <>
+      {condition !== "" && <div className="output-condition">{condition}</div>}
+      {distinguishingCase !== "" && (
+        <div className="output-distinguishing">Distinguishing case: {distinguishingCase}</div>
+      )}
+    </>
+  );
+}
+
 /**
  * A meso node's rubric row rendered for Output B, with the Sufficient Bar drawn
  * between the below- and above-bar conclusions (Q51 note 2) in whichever layout
@@ -451,6 +473,13 @@ function RubricPlanTable({
     (col) => cellFor(col)?.included ?? false,
   );
   const showBar = below.length > 0 && above.length > 0;
+  // Q74/D7: the whole logical flow (plain description → scenarios → condition
+  // → distinguishing case) belongs on this printout, not just the Markdown.
+  const conditionOf = (col: Column) => conditionSummary(cellFor(col)?.condition);
+  const caseOf = (col: Column) => (cellFor(col)?.distinguishingCase ?? "").trim();
+  const showLogic = [...below, ...above].some(
+    (col) => conditionOf(col) !== "" || caseOf(col) !== "",
+  );
 
   if (layout === "horizontal") {
     return (
@@ -507,6 +536,22 @@ function RubricPlanTable({
               </td>
             ))}
           </tr>
+          {showLogic && (
+            <tr>
+              <th scope="row">When it applies</th>
+              {below.map((col) => (
+                <td key={col.id}>
+                  <ConditionAndCase condition={conditionOf(col)} distinguishingCase={caseOf(col)} />
+                </td>
+              ))}
+              {showBar && <td className="sufficient-bar-col" />}
+              {above.map((col) => (
+                <td key={col.id}>
+                  <ConditionAndCase condition={conditionOf(col)} distinguishingCase={caseOf(col)} />
+                </td>
+              ))}
+            </tr>
+          )}
         </tbody>
       </table>
     );
@@ -523,6 +568,11 @@ function RubricPlanTable({
           columnLabelFor={columnLabelFor}
         />
       </td>
+      {showLogic && (
+        <td>
+          <ConditionAndCase condition={conditionOf(col)} distinguishingCase={caseOf(col)} />
+        </td>
+      )}
     </tr>
   );
 
@@ -533,6 +583,7 @@ function RubricPlanTable({
           <th>Conclusion</th>
           <th>Plain description</th>
           <th>Scenarios (evidence conditions)</th>
+          {showLogic && <th>When it applies</th>}
         </tr>
       </thead>
       <tbody>
@@ -541,7 +592,7 @@ function RubricPlanTable({
             horizontal layout's negative-left/positive-right convention, which
             stays as built). */}
         {above.map(conclusionRow)}
-        {showBar && <BarRow colSpan={3} />}
+        {showBar && <BarRow colSpan={showLogic ? 4 : 3} />}
         {below.map(conclusionRow)}
       </tbody>
     </table>
@@ -601,6 +652,11 @@ function SynthesisSummary({
       columnLabelFor={columnLabelFor}
     />
   );
+  // Q74/D7: the Overall Judgement's optional Boolean condition per column was
+  // export-orphaned; carry it the same way a meso cell's condition is carried.
+  const boolCondition = (col: Column) =>
+    conditionSummary(judgement.conditionCells?.find((c) => c.columnId === col.id)?.condition);
+  const showJudgementLogic = [...below, ...above].some((col) => boolCondition(col) !== "");
 
   if (layout === "horizontal") {
     return (
@@ -659,19 +715,36 @@ function SynthesisSummary({
                 <td key={col.id}>{conditions(col)}</td>
               ))}
             </tr>
+            {showJudgementLogic && (
+              <tr>
+                <th scope="row">When it applies</th>
+                {below.map((col) => (
+                  <td key={col.id} className="output-condition">
+                    {boolCondition(col)}
+                  </td>
+                ))}
+                {showBar && <td className="sufficient-bar-col" />}
+                {above.map((col) => (
+                  <td key={col.id} className="output-condition">
+                    {boolCondition(col)}
+                  </td>
+                ))}
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
     );
   }
 
-  const colSpan = 2 + (decision ? 1 : 0) + 1;
+  const colSpan = 2 + (decision ? 1 : 0) + 1 + (showJudgementLogic ? 1 : 0);
   const conclusionRow = (col: Column) => (
     <tr key={col.id}>
       <th scope="row">{col.label || "(unnamed)"}</th>
       {decision && <td>{decisionText(col)}</td>}
       <td>{plainText(col)}</td>
       <td>{conditions(col)}</td>
+      {showJudgementLogic && <td className="output-condition">{boolCondition(col)}</td>}
     </tr>
   );
 
@@ -685,6 +758,7 @@ function SynthesisSummary({
             {decision && <th>Decision</th>}
             <th>Plain description</th>
             <th>Criterion conditions</th>
+            {showJudgementLogic && <th>When it applies</th>}
           </tr>
         </thead>
         <tbody>

@@ -5,10 +5,12 @@ import {
   subordinateLayer,
   superiorLayer,
 } from "../domain/layers";
-import type { Column, MesoNode, Scenario } from "../domain/schema";
+import type { Cell, Column, EvaluationQuestion, MesoNode, Scenario } from "../domain/schema";
 import { useStore } from "../store/store";
 import { firstIncompleteView } from "../store/wizard";
-import { ConditionBuilder } from "./ConditionBuilder";
+import { BooleanEditor } from "./BooleanEditor";
+import { ConditionModeToggle, useConditionMode } from "./ConditionMode";
+import { ProseEditor } from "./ProseEditor";
 import { TokenProseEditor, type TokenProseHandle } from "./TokenProseEditor";
 import { WizardNav } from "./WizardNav";
 
@@ -31,6 +33,12 @@ import { WizardNav } from "./WizardNav";
  * superior layer is structure + headers only (no reach/plain-description/
  * evidence pass); completion gates on named nodes + filled headers + full
  * rollup. Flagged for owner override.
+ *
+ * Each superior node's interlayer connect pass (Q53/Q54) is one merged block
+ * per node (Q75, mirroring Q74/D1 at the criterion layer): the scenario
+ * columns and that column's condition (boolean or prose, `cell.condition`)
+ * live together per column instead of in a separate condition panel after
+ * them — see `SuperiorNodeInterlayer` below.
  */
 export function SecondLayerView() {
   const doc = useStore((s) => s.doc);
@@ -43,9 +51,6 @@ export function SecondLayerView() {
   const addSuperiorColumn = useStore((s) => s.addSuperiorColumn);
   const removeSuperiorColumn = useStore((s) => s.removeSuperiorColumn);
   const setNodeParent = useStore((s) => s.setNodeParent);
-  const addSuperiorScenario = useStore((s) => s.addSuperiorScenario);
-  const updateSuperiorScenarioParts = useStore((s) => s.updateSuperiorScenarioParts);
-  const removeSuperiorScenario = useStore((s) => s.removeSuperiorScenario);
   const setView = useStore((s) => s.setView);
   const [gateMessage, setGateMessage] = useState<string | null>(null);
   // The inter-layer scenario a subordinate-cell click inserts into (Q54): set
@@ -137,81 +142,6 @@ export function SecondLayerView() {
     }
   };
   const clearTarget = () => setActiveScenarioId(null);
-
-  // A superior node's conditional-statement scenario box (reuses the J10/J11
-  // TokenProseEditor + Scenario parts shape verbatim — Q53 reading point 3).
-  const superiorScenarioBox = (
-    node: MesoNode,
-    cell: { id: string },
-    column: Column,
-    scenario: Scenario,
-    i: number,
-  ) => (
-    <div key={scenario.id} className="scenario-slot">
-      {i > 0 && <div className="scenario-or">OR</div>}
-      <div
-        className={
-          activeScenarioId === scenario.id ? "scenario-box active" : "scenario-box"
-        }
-      >
-        <div className="scenario-box-header">
-          <span className="col-side-tag">Scenario {i + 1}</span>
-          <button
-            type="button"
-            className="chip-remove"
-            aria-label={`Remove scenario ${i + 1} for ${node.name} at ${column.label}`}
-            title="Remove this scenario (moves to the Recycle Bin)"
-            onClick={() => {
-              if (activeScenarioId === scenario.id) setActiveScenarioId(null);
-              removeSuperiorScenario(node.id, cell.id, scenario.id);
-            }}
-          >
-            ×
-          </button>
-        </div>
-        <TokenProseEditor
-          ref={(handle) => {
-            if (handle) editors.current.set(scenario.id, handle);
-            else editors.current.delete(scenario.id);
-          }}
-          parts={scenario.parts}
-          nameFor={subNodeName}
-          columnLabelFor={subColumnLabel}
-          onChange={(parts) =>
-            updateSuperiorScenarioParts(node.id, cell.id, scenario.id, parts)
-          }
-          onFocus={() => setActiveScenarioId(scenario.id)}
-          placeholder={`Which ${subNodeLabel} conclusions, together, make this ${supNodeLabel} reach “${column.label}” — and what must hold for each.`}
-          label={`Condition for ${node.name} at ${column.label}`}
-          testId={`superior-scenario-${node.order}-${column.ordinal}-${i}`}
-        />
-      </div>
-    </div>
-  );
-
-  // One superior node's conditions: each column of the superior continuum gets
-  // its own conditional statements, below-then-above the Sufficient Bar.
-  const superiorColumnBlock = (node: MesoNode, column: Column) => {
-    const cell = node.cells.find((c) => c.columnId === column.id);
-    if (!cell?.included) return null;
-    const scenarios = [...cell.scenarios].sort((a, b) => a.order - b.order);
-    return (
-      <div key={column.id} className="interlayer-column">
-        <div className="interlayer-column-head">{column.label || "(unnamed)"}</div>
-        <div className="evidence-cell" data-testid={`superior-conditions-${node.order}-${column.ordinal}`}>
-          {scenarios.map((s, i) => superiorScenarioBox(node, cell, column, s, i))}
-          <button
-            type="button"
-            className="secondary"
-            data-testid={`superior-add-scenario-${node.order}-${column.ordinal}`}
-            onClick={() => addSuperiorScenario(node.id, cell.id)}
-          >
-            + Add scenario
-          </button>
-        </div>
-      </div>
-    );
-  };
 
   // The subordinate rubric as the click panel (Q54 (a), same shape as J11's
   // methods/meso panel): click a subordinate cell to drop "«node» is «header»"
@@ -411,27 +341,20 @@ export function SecondLayerView() {
           <div className="synthesis-split">
             <div className="synthesis-side">
               {superior.nodes.map((node) => (
-                <div
+                <SuperiorNodeInterlayer
                   key={node.id}
-                  className="interlayer-node"
-                  data-testid={`interlayer-node-${node.order}`}
-                >
-                  <h4>{node.name || `(unnamed ${supNodeLabel})`}</h4>
-                  <div className="interlayer-columns">
-                    {negatives.map((c) => superiorColumnBlock(node, c))}
-                    <div
-                      className="interlayer-bar"
-                      title="Sufficient Bar"
-                      aria-label="Sufficient Bar"
-                    />
-                    {positives.map((c) => superiorColumnBlock(node, c))}
-                  </div>
-                  {/* Optional Boolean conditions for this superior node
-                      (Slice 14, Q61) — referencing the subordinate conclusions,
-                      used by the Simulate Judgement fold. Alongside the prose
-                      scenarios above, never replacing them. */}
-                  <ConditionBuilder node={node} doc={doc} />
-                </div>
+                  node={node}
+                  doc={doc}
+                  negatives={negatives}
+                  positives={positives}
+                  supNodeLabel={supNodeLabel}
+                  subNodeLabel={subNodeLabel}
+                  activeScenarioId={activeScenarioId}
+                  setActiveScenarioId={setActiveScenarioId}
+                  editors={editors}
+                  subNodeName={subNodeName}
+                  subColumnLabel={subColumnLabel}
+                />
               ))}
             </div>
 
@@ -535,5 +458,165 @@ export function SecondLayerView() {
         </p>
       )}
     </section>
+  );
+}
+
+/**
+ * One superior node's interlayer connect pass (Q53/Q54), merged per column
+ * (Q75): each column of the superior continuum shows its subordinate-facing
+ * prose scenarios (reusing the J10/J11 TokenProseEditor + Scenario parts
+ * shape verbatim — Q53 reading point 3) immediately followed by that same
+ * column's condition (boolean or prose, `cell.condition`) — the field
+ * previously edited in a separate `ConditionBuilder` panel after all the
+ * columns, duplicating the cell the same way J10 did before Q74. Calls
+ * `useConditionMode` once per node instance, so each superior node keeps its
+ * own session-local Boolean/Prose toggle.
+ */
+function SuperiorNodeInterlayer({
+  node,
+  doc,
+  negatives,
+  positives,
+  supNodeLabel,
+  subNodeLabel,
+  activeScenarioId,
+  setActiveScenarioId,
+  editors,
+  subNodeName,
+  subColumnLabel,
+}: {
+  node: MesoNode;
+  doc: EvaluationQuestion;
+  negatives: Column[];
+  positives: Column[];
+  supNodeLabel: string;
+  subNodeLabel: string;
+  activeScenarioId: string | null;
+  setActiveScenarioId: (id: string | null) => void;
+  editors: React.MutableRefObject<Map<string, TokenProseHandle>>;
+  subNodeName: (id: string) => string;
+  subColumnLabel: (id: string) => string;
+}) {
+  const addSuperiorScenario = useStore((s) => s.addSuperiorScenario);
+  const removeSuperiorScenario = useStore((s) => s.removeSuperiorScenario);
+  const updateSuperiorScenarioParts = useStore((s) => s.updateSuperiorScenarioParts);
+  const cond = useConditionMode(node, doc);
+
+  const scenarioBox = (
+    cell: Cell,
+    column: Column,
+    scenario: Scenario,
+    i: number,
+  ) => (
+    <div key={scenario.id} className="scenario-slot">
+      {i > 0 && <div className="scenario-or">OR</div>}
+      <div
+        className={
+          activeScenarioId === scenario.id ? "scenario-box active" : "scenario-box"
+        }
+      >
+        <div className="scenario-box-header">
+          <span className="col-side-tag">Scenario {i + 1}</span>
+          <button
+            type="button"
+            className="chip-remove"
+            aria-label={`Remove scenario ${i + 1} for ${node.name} at ${column.label}`}
+            title="Remove this scenario (moves to the Recycle Bin)"
+            onClick={() => {
+              if (activeScenarioId === scenario.id) setActiveScenarioId(null);
+              removeSuperiorScenario(node.id, cell.id, scenario.id);
+            }}
+          >
+            ×
+          </button>
+        </div>
+        <TokenProseEditor
+          ref={(handle) => {
+            if (handle) editors.current.set(scenario.id, handle);
+            else editors.current.delete(scenario.id);
+          }}
+          parts={scenario.parts}
+          nameFor={subNodeName}
+          columnLabelFor={subColumnLabel}
+          onChange={(parts) =>
+            updateSuperiorScenarioParts(node.id, cell.id, scenario.id, parts)
+          }
+          onFocus={() => setActiveScenarioId(scenario.id)}
+          placeholder={`Which ${subNodeLabel} conclusions, together, make this ${supNodeLabel} reach “${column.label}” — and what must hold for each.`}
+          label={`Condition for ${node.name} at ${column.label}`}
+          testId={`superior-scenario-${node.order}-${column.ordinal}-${i}`}
+        />
+      </div>
+    </div>
+  );
+
+  const columnBlock = (column: Column) => {
+    const cell = node.cells.find((c) => c.columnId === column.id);
+    if (!cell?.included) return null;
+    const scenarios = [...cell.scenarios].sort((a, b) => a.order - b.order);
+    return (
+      <div key={column.id} className="interlayer-column">
+        <div className="interlayer-column-head">{column.label || "(unnamed)"}</div>
+        <div className="evidence-cell" data-testid={`superior-conditions-${node.order}-${column.ordinal}`}>
+          {scenarios.map((s, i) => scenarioBox(cell, column, s, i))}
+          <button
+            type="button"
+            className="secondary"
+            data-testid={`superior-add-scenario-${node.order}-${column.ordinal}`}
+            onClick={() => addSuperiorScenario(node.id, cell.id)}
+          >
+            + Add scenario
+          </button>
+        </div>
+        <div
+          className="conclusion-condition"
+          data-testid={`superior-condition-${node.order}-${column.ordinal}`}
+        >
+          <h5>When this conclusion applies (optional)</h5>
+          {cond.mode === "boolean" ? (
+            <BooleanEditor
+              node={node}
+              cell={cell}
+              elements={cond.elements}
+              testId={`superior-bool-${node.order}-${column.ordinal}`}
+            />
+          ) : (
+            <ProseEditor
+              node={node}
+              cell={cell}
+              testId={`superior-prose-${node.order}-${column.ordinal}`}
+            />
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="interlayer-node" data-testid={`interlayer-node-${node.order}`}>
+      <div
+        className="cond-panel-head"
+        data-testid={`superior-condition-panel-${node.order}`}
+      >
+        <h4>{node.name || `(unnamed ${supNodeLabel})`}</h4>
+        <ConditionModeToggle
+          nodeId={node.id}
+          mode={cond.mode}
+          booleanAvailable={cond.booleanAvailable}
+          onChoose={cond.chooseMode}
+        />
+      </div>
+      {!cond.booleanAvailable && (
+        <p className="hint" data-testid={`superior-condition-no-boolean-${node.order}`}>
+          Boolean mode needs evidence elements to reference. Add Evidence/Methods to this
+          node, or describe the condition in prose.
+        </p>
+      )}
+      <div className="interlayer-columns">
+        {negatives.map(columnBlock)}
+        <div className="interlayer-bar" title="Sufficient Bar" aria-label="Sufficient Bar" />
+        {positives.map(columnBlock)}
+      </div>
+    </div>
   );
 }

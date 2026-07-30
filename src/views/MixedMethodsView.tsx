@@ -263,7 +263,7 @@ export function MixedMethodsView() {
   const createCombination = (): boolean => {
     const messages: string[] = [];
     if (memberIds.length < 2) {
-      messages.push("Combine at least two Evidence/Methods (Invariant 12).");
+      messages.push("Combine at least two Evidence/Methods.");
     }
     if (form.type === "") messages.push("Choose the mixed-methods type.");
     if (form.type === "other" && form.customName.trim() === "") {

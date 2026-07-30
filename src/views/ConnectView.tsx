@@ -5,23 +5,35 @@ import { scenarioDescribed } from "../domain/scenario";
 import type { Cell, Column, MesoNode, Scenario } from "../domain/schema";
 import { useStore } from "../store/store";
 import { firstIncompleteView, scenariosIncomplete } from "../store/wizard";
-import { ConditionBuilder } from "./ConditionBuilder";
+import { BooleanEditor } from "./BooleanEditor";
+import { ConditionModeToggle, useConditionMode } from "./ConditionMode";
+import { ProseEditor } from "./ProseEditor";
 import { TokenProseEditor, type TokenProseHandle } from "./TokenProseEditor";
 import { WizardNav } from "./WizardNav";
 
 /**
- * J10 — connect evidence to conclusions (R-083–R-097). One node at a time:
- * the rubric row with its Plain Descriptions read-only, and beneath it an
- * Evidence row where each open cell collects ≥1 prose Scenario (R-083/R-084).
- * Scenarios are visually separate boxes joined by "OR" — each one independently
- * shows the conclusion has been reached (R-087/R-088). The node's
- * Evidence/Methods sit aside: clicking one inserts its name into the focused
- * scenario's prose as a bold inline token, and the user types what about that
- * method must hold right after it (R-085/R-086, Q41/⚠Q43).
- * A 1–5 Clarity Rating per open cell (endpoints-only labels, Q8) fires the
+ * J10 — connect evidence to conclusions (R-083–R-097, Q74). One node at a
+ * time, its conclusions stacked in a single vertical view — not the rubric
+ * grid and a separate condition panel this used to be (Q74/D1). Each open
+ * conclusion block holds, in order: its Column Header, its full read-only
+ * Plain Description (authored in J5), its Evidence row (≥1 prose Scenario,
+ * R-083/R-084), its Clarity block, and its condition (boolean or prose,
+ * R-COND-*). Blocks run below-bar conclusions first, then the Sufficient Bar
+ * divider, then above-bar conclusions (Q74/D2) — deliberately differing from
+ * OutputsView's vertical printout, which puts above-bar first; do not
+ * reconcile the two. An excluded conclusion collapses to its header and a
+ * "not in scope" line (Q74/D3). There is no wheel-stepper on this view
+ * (Q74/D5, a deliberate deviation from the R-061 wheel pattern used in
+ * CriterionView) — node navigation is Prev/Next plus the Progress list only.
+ * Scenarios are visually separate boxes joined by "OR" — each one
+ * independently shows the conclusion has been reached (R-087/R-088). The
+ * node's Evidence/Methods sit aside: clicking one inserts its name into the
+ * focused scenario's prose as a bold inline token (R-085/R-086, Q41/⚠Q43). A
+ * 1–5 Clarity Rating per open cell (endpoints-only labels, Q8) fires the
  * add-evidence prompt at 1–3 (Q9); declining records the "may not be clear"
  * note (R-093–R-096). Continue gates on every node's open cells having a
- * described Scenario (R-097, GWT-10.5).
+ * described Scenario (R-097, GWT-10.5). Conditions are documentation, never
+ * executed outside the ephemeral Simulate sandbox.
  */
 
 type Light = "green" | "amber" | "red";
@@ -60,18 +72,20 @@ export function ConnectView() {
     const at = layer?.nodes.findIndex((n) => scenariosIncomplete(n)) ?? -1;
     return at >= 0 ? at : 0;
   });
-  const lastWheel = useRef(0);
 
   useEffect(() => {
     useStore.setState({ focusNodeId: null });
   }, []);
 
   const layer = doc?.mesoLayers.find((l) => l.tierOrder === 0);
-  if (!doc || !layer || layer.nodes.length === 0) return null;
+  const nodes = layer?.nodes ?? [];
+  const node = nodes.length > 0 ? nodes[Math.min(index, nodes.length - 1)] : undefined;
+  // Called unconditionally, before the early return below (hook-order rule).
+  const cond = useConditionMode(node, doc);
+
+  if (!doc || !layer || !node) return null;
 
   const nodeLabel = layer.kind === "criteria" ? "criterion" : "component";
-  const nodes = layer.nodes;
-  const node = nodes[Math.min(index, nodes.length - 1)]!;
   const methodById = new Map(doc.evidenceMethods.map((m) => [m.id, m]));
   const methodName = (id: string) => methodById.get(id)?.name ?? "(unnamed)";
 
@@ -83,22 +97,9 @@ export function ConnectView() {
     }
   };
 
-  // Scrolling over the row moves between nodes, one at a time (R-061 pattern).
-  const onWheel = (e: React.WheelEvent) => {
-    if ((e.target as HTMLElement).closest(".evidence-cell")) return; // let tall cells scroll
-    const now = Date.now();
-    if (now - lastWheel.current < 400 || Math.abs(e.deltaY) < 10) return;
-    lastWheel.current = now;
-    goTo(index + (e.deltaY > 0 ? 1 : -1));
-  };
-
-  const negatives = negativeColumns(layer.continuum);
-  const positives = positiveColumns(layer.continuum);
+  const below = negativeColumns(layer.continuum);
+  const above = positiveColumns(layer.continuum);
   const cellByColumn = new Map(node.cells.map((c) => [c.columnId, c]));
-  const barCol = 2 + negatives.length;
-  const gridTemplateColumns = `minmax(6rem, 7rem) repeat(${negatives.length}, minmax(13rem, 1fr)) 12px repeat(${positives.length}, minmax(13rem, 1fr))`;
-  const columnFor = (side: "negative" | "positive", i: number) =>
-    side === "negative" ? i + 2 : barCol + 1 + i;
 
   const scenarioBox = (cell: Cell, column: Column, scenario: Scenario, i: number) => (
     <div key={scenario.id} className="scenario-slot">
@@ -209,49 +210,69 @@ export function ConnectView() {
     </div>
   );
 
-  const plainCell = (column: Column, side: "negative" | "positive", i: number) => {
+  const conclusionBlock = (column: Column) => {
     const cell = cellByColumn.get(column.id);
     if (!cell) return null;
-    return (
-      <div
-        key={column.id}
-        className={cell.included ? "review-cell" : "review-cell cell-excluded"}
-        style={{ gridColumn: columnFor(side, i), gridRow: 2 }}
-      >
-        {cell.included ? cell.plainDescription : ""}
-      </div>
-    );
-  };
 
-  const evidenceCell = (column: Column, side: "negative" | "positive", i: number) => {
-    const cell = cellByColumn.get(column.id);
-    if (!cell) return null;
     if (!cell.included) {
       return (
         <div
           key={column.id}
-          className="review-cell cell-excluded"
-          style={{ gridColumn: columnFor(side, i), gridRow: 3 }}
-        />
+          className="conclusion-block excluded"
+          data-testid={`conclusion-${column.ordinal}`}
+        >
+          <h4 className="conclusion-head">{column.label || "(unnamed)"}</h4>
+          <p className="hint">Not in scope for this {nodeLabel}.</p>
+        </div>
       );
     }
+
+    const plain = (cell.plainDescription ?? "").trim();
+
     return (
       <div
         key={column.id}
-        className="evidence-cell"
-        data-testid={`evidence-cell-${column.ordinal}`}
-        style={{ gridColumn: columnFor(side, i), gridRow: 3 }}
+        className="conclusion-block"
+        data-testid={`conclusion-${column.ordinal}`}
       >
-        {cell.scenarios.map((s, si) => scenarioBox(cell, column, s, si))}
-        <button
-          type="button"
-          className="secondary"
-          data-testid={`add-scenario-${column.ordinal}`}
-          onClick={() => addScenario(node.id, cell.id)}
+        <h4 className="conclusion-head">{column.label || "(unnamed)"}</h4>
+        <div className="conclusion-plain" data-testid={`plain-${column.ordinal}`}>
+          {plain !== "" ? (
+            cell.plainDescription
+          ) : (
+            <span className="hint">
+              No plain description yet — written in the {nodeLabel} step.
+            </span>
+          )}
+        </div>
+        <div
+          className="evidence-cell"
+          data-testid={`evidence-cell-${column.ordinal}`}
         >
-          + Add scenario
-        </button>
+          {cell.scenarios.map((s, si) => scenarioBox(cell, column, s, si))}
+          <button
+            type="button"
+            className="secondary"
+            data-testid={`add-scenario-${column.ordinal}`}
+            onClick={() => addScenario(node.id, cell.id)}
+          >
+            + Add scenario
+          </button>
+        </div>
         {cell.scenarios.length > 0 && clarityBlock(cell, column)}
+        <div className="conclusion-condition" data-testid={`condition-cell-${column.ordinal}`}>
+          <h5>When this conclusion applies (optional)</h5>
+          {cond.mode === "boolean" ? (
+            <BooleanEditor
+              node={node}
+              cell={cell}
+              elements={cond.elements}
+              testId={`bool-${column.ordinal}`}
+            />
+          ) : (
+            <ProseEditor node={node} cell={cell} testId={`prose-${column.ordinal}`} />
+          )}
+        </div>
       </div>
     );
   };
@@ -261,14 +282,15 @@ export function ConnectView() {
       <h2>Connect the evidence to “{node.name}”</h2>
       <p>
         For each open conclusion, describe ≥1 <strong>Scenario</strong> — the evidence
-        that would show it has been reached. Click an Evidence/Method in the side panel
-        to drop its <strong>name</strong> into your prose, then write what about that
-        method must happen. Boxes joined by <em>OR</em> are independent alternatives:
-        any one of them is enough on its own.
+        that would show it has been reached. Boxes joined by <em>OR</em> are
+        independent alternatives: any one of them is enough on its own. Click an{" "}
+        <strong>Evidence / Method</strong> in the side panel to drop its name into the
+        focused scenario, then write what about that method must happen. Optionally,
+        state <strong>when</strong> that conclusion applies as a condition.
       </p>
 
       <div className="criterion-editor">
-        <div className="criterion-main" onWheel={onWheel}>
+        <div className="criterion-main">
           <div className="row-nav">
             <button
               type="button"
@@ -291,50 +313,38 @@ export function ConnectView() {
             </button>
           </div>
 
-          <div
-            className="continuum-grid review-grid connect-grid"
-            style={{ gridTemplateColumns }}
-          >
-            <div style={{ gridColumn: 1, gridRow: 1 }} />
-            {negatives.map((c, i) => (
-              <div
-                key={c.id}
-                className="col-header col-negative"
-                style={{ gridColumn: columnFor("negative", i), gridRow: 1 }}
-              >
-                {c.label}
-              </div>
-            ))}
-            <div
-              className="sufficient-bar"
-              data-testid="sufficient-bar"
-              title="Sufficient Bar"
-              style={{ gridColumn: barCol, gridRow: "1 / 4" }}
-            />
-            {positives.map((c, i) => (
-              <div
-                key={c.id}
-                className="col-header col-positive"
-                style={{ gridColumn: columnFor("positive", i), gridRow: 1 }}
-              >
-                {c.label}
-              </div>
-            ))}
-            <div className="connect-row-label" style={{ gridColumn: 1, gridRow: 2 }}>
-              Plain Description
+          <section className="cond-panel" data-testid="condition-panel">
+            <div className="cond-panel-head">
+              <h4>Each conclusion for this {nodeLabel}</h4>
+              <ConditionModeToggle
+                nodeId={node.id}
+                mode={cond.mode}
+                booleanAvailable={cond.booleanAvailable}
+                onChoose={cond.chooseMode}
+              />
             </div>
-            {negatives.map((c, i) => plainCell(c, "negative", i))}
-            {positives.map((c, i) => plainCell(c, "positive", i))}
-            <div className="connect-row-label" style={{ gridColumn: 1, gridRow: 3 }}>
-              Evidence
-            </div>
-            {negatives.map((c, i) => evidenceCell(c, "negative", i))}
-            {positives.map((c, i) => evidenceCell(c, "positive", i))}
-          </div>
 
-          {/* Slice 13: click-built plain-English conditions stating *when* each
-              conclusion applies — documentation for the logic, never executed. */}
-          <ConditionBuilder node={node} doc={doc} />
+            {!cond.booleanAvailable && (
+              <p className="hint" data-testid="condition-no-boolean">
+                Boolean mode needs evidence elements to reference. Add Evidence/Methods
+                to this node, or describe the condition in prose.
+              </p>
+            )}
+
+            <div className="connect-stack" data-testid="connect-stack">
+              {below.map(conclusionBlock)}
+              {below.length > 0 && above.length > 0 && (
+                <div
+                  className="connect-bar-divider"
+                  data-testid="sufficient-bar"
+                  title="Sufficient Bar"
+                >
+                  Sufficient Bar
+                </div>
+              )}
+              {above.map(conclusionBlock)}
+            </div>
+          </section>
 
           <WizardNav
             continueTestId="connect-continue"

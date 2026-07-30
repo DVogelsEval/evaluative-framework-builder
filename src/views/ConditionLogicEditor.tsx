@@ -10,15 +10,10 @@ import {
 import type { EvidenceElement } from "../domain/conditionLexicon";
 import type { ConditionTerm, RubricCellCondition, WarrantType } from "../domain/schema";
 import { WARRANT_SOURCE_PROMPTS, WARRANT_TYPE_LABELS } from "../domain/warrant";
-import { ConditionModal } from "./ConditionModal";
+import { ConditionModal, type JoinOp } from "./ConditionModal";
 import { ConditionTermToken } from "./ConditionTermToken";
 
-type ModalState =
-  | { kind: "add-and" }
-  | { kind: "add-or" }
-  | { kind: "add-not" }
-  | { kind: "edit"; index: number }
-  | null;
+type ModalState = { kind: "add" } | { kind: "edit"; index: number } | null;
 
 /**
  * The reusable Boolean-condition editor (R-COND-2/6/9/10). It renders a
@@ -29,6 +24,12 @@ type ModalState =
  * rubric cell (`BooleanEditor`) and an Overall-Judgement column
  * (`JudgementConditionEditor`, Slice 14). `elements` scopes what the term modal
  * offers (methods for a criterion, node conclusions for the synthesis, §B.7).
+ *
+ * One `+ Add condition` button (Q74/D6): the join word and a term's negation
+ * are chosen inside the modal, not by separate add-and/add-or/add-not buttons.
+ * The underlying model is still a single-join flat chain — changing the join
+ * word changes it for every term in the chain, which the modal states plainly
+ * rather than hiding. Nesting stays reachable only via the typed escape hatch.
  */
 export function ConditionLogicEditor({
   elements,
@@ -70,17 +71,15 @@ export function ConditionLogicEditor({
     patch({ booleanLogic: buildBooleanTree(flatToAst(next), elements) });
   };
 
-  const onModalSave = (term: ConditionTerm) => {
+  const onModalSave = (term: ConditionTerm, opts: { negated: boolean; joinOp: JoinOp }) => {
     const current = flat ?? { op: "AND" as const, items: [] };
     if (modal?.kind === "edit") {
-      const items = current.items.map((it, i) => (i === modal.index ? { ...it, term } : it));
-      commit({ ...current, items });
-    } else if (modal?.kind === "add-or") {
-      commit({ op: "OR", items: [...current.items, { negated: false, term }] });
-    } else if (modal?.kind === "add-not") {
-      commit({ ...current, items: [...current.items, { negated: true, term }] });
+      const items = current.items.map((it, i) =>
+        i === modal.index ? { term, negated: opts.negated } : it,
+      );
+      commit({ op: opts.joinOp, items });
     } else {
-      commit({ op: "AND", items: [...current.items, { negated: false, term }] });
+      commit({ op: opts.joinOp, items: [...current.items, { negated: opts.negated, term }] });
     }
     setModal(null);
   };
@@ -157,27 +156,10 @@ export function ConditionLogicEditor({
           <div className="cond-add-row">
             <button
               type="button"
-              className="secondary"
-              data-testid={`${testId}-add-and`}
-              onClick={() => setModal({ kind: "add-and" })}
+              data-testid={`${testId}-add-term`}
+              onClick={() => setModal({ kind: "add" })}
             >
-              + Add “and” term
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              data-testid={`${testId}-add-or`}
-              onClick={() => setModal({ kind: "add-or" })}
-            >
-              + Add “or” term
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              data-testid={`${testId}-add-not`}
-              onClick={() => setModal({ kind: "add-not" })}
-            >
-              + Add “not” term
+              + Add condition
             </button>
           </div>
         </>
@@ -227,6 +209,13 @@ export function ConditionLogicEditor({
         <ConditionModal
           elements={elements}
           initial={initialTerm()}
+          showJoin={
+            modal.kind === "edit" ? (flat?.items.length ?? 0) >= 2 : (flat?.items.length ?? 0) >= 1
+          }
+          initialJoinOp={flat?.op ?? "AND"}
+          initialNegated={
+            modal.kind === "edit" ? (flat?.items[modal.index]?.negated ?? false) : false
+          }
           onSave={onModalSave}
           onCancel={() => setModal(null)}
           onDelete={modal.kind === "edit" ? onModalDelete : undefined}

@@ -59,9 +59,11 @@ test("condition builder: build, edit, toggle, error-handle, export, persist", as
   await expect(page.getByTestId("condition-mode-boolean")).toBeChecked();
 
   // --- Scenario 1: build a condition from clicks on the "Sufficient" cell -----
-  // Term 1: [Classroom observation] is Strong
-  await page.getByTestId("bool-2-add-and").click();
+  // Term 1: [Classroom observation] is Strong — one button, no join word yet
+  // (Q74/D6): the modal only offers a join selector once ≥2 terms are involved.
+  await page.getByTestId("bool-2-add-term").click();
   await expect(page.getByTestId("cond-modal-element")).toBeVisible();
+  await expect(page.getByTestId("cond-modal-join")).toHaveCount(0);
   await page
     .getByTestId("cond-modal-element")
     .selectOption({ label: "[Classroom observation]" });
@@ -72,8 +74,12 @@ test("condition builder: build, edit, toggle, error-handle, export, persist", as
     "[Classroom observation] is Strong",
   );
 
-  // Term 2 (AND): [Scenario Clarity] is at least 3 — a context-aware numeric value
-  await page.getByTestId("bool-2-add-and").click();
+  // Term 2 (AND): [Scenario Clarity] is at least 3 — a context-aware numeric
+  // value. Now that a second term is joining the chain, the modal's join
+  // selector appears, defaulting to the chain's current join word.
+  await page.getByTestId("bool-2-add-term").click();
+  await expect(page.getByTestId("cond-modal-join")).toBeVisible();
+  await expect(page.getByTestId("cond-modal-join")).toHaveValue("AND");
   await page.getByTestId("cond-modal-element").selectOption({ label: "[Scenario Clarity]" });
   await page.getByTestId("cond-modal-comparator").selectOption({ label: "is at least" });
   await page.getByTestId("cond-modal-value").fill("3");
@@ -82,6 +88,19 @@ test("condition builder: build, edit, toggle, error-handle, export, persist", as
     "[Scenario Clarity] is at least 3",
   );
   await expect(page.getByTestId("bool-2-chain")).toContainText("and");
+
+  // Negation now lives in the modal too (Q74/D6): editing a term lets the
+  // user tick "not" instead of using a separate add-not button. Exercise it,
+  // then revert — the later export/persistence assertions expect the
+  // un-negated condition.
+  await page.getByTestId("bool-2-term-1-edit").click();
+  await page.getByTestId("cond-modal-negate").check();
+  await page.getByTestId("cond-modal-save").click();
+  await expect(page.getByTestId("bool-2-term-1")).toContainText("not");
+  await page.getByTestId("bool-2-term-1-edit").click();
+  await page.getByTestId("cond-modal-negate").uncheck();
+  await page.getByTestId("cond-modal-save").click();
+  await expect(page.getByTestId("bool-2-term-1")).not.toContainText("not");
 
   // A defeasible qualifier (R-COND-6): a typed warrant. The type is chosen
   // first (Q63) — it unlocks the source/text fields, which are disabled
@@ -138,6 +157,11 @@ test("condition builder: build, edit, toggle, error-handle, export, persist", as
 
   // --- Scenario 3: exports carry the conditions -------------------------------
   await page.getByTestId("home-outputs").click();
+  // The on-screen/print Output B rubric table now carries the condition too
+  // (Q74/D7), not just the Markdown export.
+  await expect(page.getByTestId("output-sheet")).toContainText(
+    "[Classroom observation] is Good and [Scenario Clarity] is at least 3",
+  );
   const [md] = await Promise.all([
     page.waitForEvent("download"),
     page.getByTestId("export-markdown").click(),

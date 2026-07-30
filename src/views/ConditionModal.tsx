@@ -8,21 +8,32 @@ import {
 } from "../domain/conditionLexicon";
 import type { Comparator, ComparisonValue, ConditionTerm } from "../domain/schema";
 
+export type JoinOp = "AND" | "OR";
+
 /**
  * The term editor modal (R-COND-2): pick an evidence element, then a
  * context-aware comparator (R-COND-4), then a context-aware value. Save returns
- * a built ConditionTerm; Delete is offered only when editing an existing term.
+ * a built ConditionTerm plus the term's negation and the chain's join word
+ * (Q74/D6 — there is one `+ Add condition` button; join/negate live here
+ * instead of on separate add-and/add-or/add-not buttons). Delete is offered
+ * only when editing an existing term.
  */
 export function ConditionModal({
   elements,
   initial,
+  showJoin,
+  initialJoinOp,
+  initialNegated,
   onSave,
   onCancel,
   onDelete,
 }: {
   elements: EvidenceElement[];
   initial: ConditionTerm | null;
-  onSave: (term: ConditionTerm) => void;
+  showJoin: boolean;
+  initialJoinOp: JoinOp;
+  initialNegated: boolean;
+  onSave: (term: ConditionTerm, opts: { negated: boolean; joinOp: JoinOp }) => void;
   onCancel: () => void;
   onDelete?: () => void;
 }) {
@@ -33,6 +44,8 @@ export function ConditionModal({
     initial?.comparator ?? "is",
   );
   const [value, setValue] = useState<ComparisonValue>(initial?.value ?? null);
+  const [joinOp, setJoinOp] = useState<JoinOp>(initialJoinOp);
+  const [negated, setNegated] = useState(initialNegated);
 
   const element = elements.find((e) => e.id === elementId) ?? elements[0];
   const comparators = useMemo(
@@ -75,19 +88,42 @@ export function ConditionModal({
   };
 
   const save = () => {
-    onSave({
-      evidenceElementId: element.id,
-      evidenceElementLabel: element.label,
-      comparator: activeComparator,
-      value: activeValue,
-      valueLabel: labelFor(activeValue),
-    });
+    onSave(
+      {
+        evidenceElementId: element.id,
+        evidenceElementLabel: element.label,
+        comparator: activeComparator,
+        value: activeValue,
+        valueLabel: labelFor(activeValue),
+      },
+      { negated, joinOp },
+    );
   };
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Edit condition term">
       <div className="modal cond-modal">
-        <h3>Edit condition term</h3>
+        <h3>{initial ? "Edit condition term" : "Add condition term"}</h3>
+
+        {showJoin && (
+          <label className="cond-field">
+            <span>Joined to the other terms by</span>
+            <select
+              data-testid="cond-modal-join"
+              value={joinOp}
+              onChange={(e) => setJoinOp(e.target.value as JoinOp)}
+            >
+              <option value="AND">and — all of them must hold</option>
+              <option value="OR">or — any one of them is enough</option>
+            </select>
+          </label>
+        )}
+        {showJoin && (
+          <p className="hint">
+            Every term in this condition is joined by the same word — changing this changes the
+            whole condition.
+          </p>
+        )}
 
         <label className="cond-field">
           <span>Evidence element</span>
@@ -162,6 +198,18 @@ export function ConditionModal({
             )}
           </label>
         )}
+
+        <label className="cond-field cond-negate">
+          <input
+            type="checkbox"
+            data-testid="cond-modal-negate"
+            checked={negated}
+            onChange={(e) => setNegated(e.target.checked)}
+          />
+          <span>
+            not — this must <strong>not</strong> be true
+          </span>
+        </label>
 
         <div className="cond-modal-actions">
           <button type="button" data-testid="cond-modal-save" onClick={save}>

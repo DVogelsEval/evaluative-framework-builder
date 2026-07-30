@@ -472,6 +472,14 @@ export function toMarkdown(
         for (const s of scenarios) {
           p(`- _Condition:_ ${scenarioPlainText(s.parts, nameFor, columnLabelFor)}`);
         }
+        // The Overall Judgement's optional per-column Boolean condition
+        // (Slice 14, Q61) — exported the same way as a rubric cell's, and
+        // under the same _Condition:_ label the prose scenarios above use
+        // (Q74/D7: both are "when this applies" statements for this column).
+        const boolCond = conditionSummary(
+          judgement.conditionCells?.find((c) => c.columnId === col.id)?.condition,
+        );
+        if (boolCond !== "") p(`- _Condition:_ ${mdCell(boolCond)}`);
         p();
       };
       for (const col of below) emitConclusion(col);
@@ -577,7 +585,7 @@ export function toMarkdown(
   if (notes.length > 0) {
     p(`## Clarity notes`);
     p();
-    p(`These conclusions were flagged as possibly not clearly evidenced (R-096):`);
+    p(`These conclusions were flagged as possibly not clearly evidenced:`);
     p();
     for (const n of notes) {
       p(`- **${mdCell(n.nodeName)} — ${mdCell(n.columnLabel)}:** ${mdCell(n.note)}`);

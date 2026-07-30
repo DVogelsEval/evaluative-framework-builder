@@ -101,6 +101,31 @@ describe("conditionSummary + Markdown conditions (Slice 13, R-COND-12)", () => {
     const md = toMarkdown(doc());
     expect(md).toContain("_Condition:_ [Classroom observation] is Strong");
   });
+
+  it("emits the Overall Judgement's boolean condition under its conclusion (Q74/D7)", () => {
+    buildTwoMethodNode();
+    s().acceptSynthesis();
+    const topColId = doc().overallJudgement!.continuum.columns[3]!.id;
+    s().setJudgementColumnLabel(topColId, "Merit Established");
+    s().setJudgementCondition(topColId, {
+      mode: "boolean",
+      booleanLogic: {
+        root: { type: "TERM", term: {
+          evidenceElementId: layer().nodes[0]!.id,
+          evidenceElementLabel: "[Teaching quality]",
+          comparator: "is", value: "Strong", valueLabel: "Strong",
+        } },
+        plainEnglish: "[Teaching quality] is Strong",
+      },
+      lastModified: "2026-07-30T00:00:00.000Z",
+    });
+    const md = toMarkdown(doc());
+    expect(md).toContain("_Condition:_ [Teaching quality] is Strong");
+    // Under the right conclusion heading, not just anywhere in the document.
+    expect(md.indexOf("### Merit Established")).toBeLessThan(
+      md.indexOf("_Condition:_ [Teaching quality] is Strong"),
+    );
+  });
 });
 
 describe("evidenceMatrix (R-116, Q26)", () => {

@@ -992,10 +992,61 @@ select {
   border-radius: 6px;
 }
 
-/* Connect evidence to conclusions (J10, R-083–R-097) */
+/* Connect evidence to conclusions (J10, R-083–R-097, Q74 — one vertical view) */
 
-.connect-grid {
-  align-items: stretch;
+.connect-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.conclusion-block {
+  border: 1px solid #d5d2c8;
+  border-radius: 6px;
+  padding: 0.9rem 1rem;
+  background: #fff;
+}
+
+.conclusion-block.excluded {
+  background: #f4f2ec;
+  color: #888;
+  padding: 0.6rem 1rem;
+}
+
+.conclusion-head {
+  margin: 0 0 0.5rem;
+}
+
+.conclusion-plain {
+  margin-bottom: 0.6rem;
+}
+
+.conclusion-condition {
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px dashed #ccc;
+}
+
+.conclusion-condition h5 {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.connect-bar-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #666;
+  padding: 0.3rem 0;
+  border-top: 2px solid #b08d3f;
+  border-bottom: 2px solid #b08d3f;
 }
 
 .connect-row-label {
@@ -1512,6 +1563,19 @@ button.meso-click-cell:disabled {
 
 .output-freetext {
   white-space: pre-wrap;
+}
+
+.output-condition {
+  margin: 0.15rem 0;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.output-distinguishing {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: #777;
 }
 
 /* Output B rubric layout toggle (Q51 note 3) — a display preference. */
@@ -2032,6 +2096,12 @@ button.meso-click-cell:disabled {
 .cond-field select,
 .cond-field textarea {
   font: inherit;
+}
+
+.cond-negate {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .cond-qualifier-row {
